@@ -21,7 +21,7 @@ const characters = [
     id: "kris",
     name: "Kris",
     color: "#95a5a6",
-    description: "Short-range but fast grappling hook & 30s bathroom timer",
+    description: "Short-range grappling hook & 30s bathroom timer",
     specialty: "Rookie",
   },
 ];
