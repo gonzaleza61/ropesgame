@@ -60,10 +60,11 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
       // Rope hit detection
       if (isAttacking && !isGrappling && !ropeCooldown) {
         const playerPos = playerRef.current.position;
+        // Fix rope direction to match player facing direction
         const direction = new Vector3(
-          -Math.sin(playerRef.current.rotation.y),
+          Math.sin(playerRef.current.rotation.y),
           0,
-          -Math.cos(playerRef.current.rotation.y)
+          Math.cos(playerRef.current.rotation.y)
         );
 
         raycaster.set(playerPos, direction);
@@ -115,7 +116,7 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
         playerRef.current.rotation.y = angle;
       }
 
-      // Update camera to follow player based on facing direction
+      // Fix camera to follow behind player in the direction they're facing
       const playerPos = playerRef.current.position;
       const playerAngle = playerRef.current.rotation.y;
 
@@ -123,9 +124,9 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
       const cameraDistance = 12;
       const cameraHeight = 8;
       const targetCameraPos = new Vector3(
-        playerPos.x + Math.sin(playerAngle) * cameraDistance,
+        playerPos.x - Math.sin(playerAngle) * cameraDistance,
         playerPos.y + cameraHeight,
-        playerPos.z + Math.cos(playerAngle) * cameraDistance
+        playerPos.z - Math.cos(playerAngle) * cameraDistance
       );
 
       // Smooth camera follow
@@ -333,8 +334,7 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
             {/* Rope */}
             <mesh
               ref={ropeRef}
-              position={[0, 0, -ropeLength[character.id] / 2]}
-              rotation={[0, playerRef.current?.rotation.y || 0, 0]}
+              position={[0, 0, 0]} // Center position
             >
               <cylinderGeometry
                 args={[
@@ -344,10 +344,46 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
                     ? playerRef.current.position.distanceTo(grapplePoint)
                     : ropeLength[character.id],
                 ]}
+                // Properly orient the rope in the player's facing direction
                 rotation={[Math.PI / 2, 0, 0]}
               />
               <meshStandardMaterial color={character.color} />
             </mesh>
+
+            {/* Adjust the rope to point in the right direction */}
+            {isGrappling && grapplePoint ? (
+              // When grappling, point directly to grapple point
+              <group position={[0, 0, 0]} lookAt={grapplePoint}>
+                <mesh
+                  position={[
+                    0,
+                    0,
+                    playerRef.current.position.distanceTo(grapplePoint) / 2,
+                  ]}
+                  rotation={[Math.PI / 2, 0, 0]}
+                >
+                  <cylinderGeometry
+                    args={[
+                      0.05,
+                      0.05,
+                      playerRef.current.position.distanceTo(grapplePoint),
+                    ]}
+                  />
+                  <meshStandardMaterial color={character.color} />
+                </mesh>
+              </group>
+            ) : (
+              // When just shooting, point in player's facing direction
+              <mesh
+                position={[0, 0, ropeLength[character.id] / 2]}
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <cylinderGeometry
+                  args={[0.05, 0.05, ropeLength[character.id]]}
+                />
+                <meshStandardMaterial color={character.color} />
+              </mesh>
+            )}
 
             {/* Rope hook/end */}
             {isGrappling && grapplePoint && (

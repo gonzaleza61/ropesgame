@@ -119,7 +119,7 @@ function App() {
 
           {gameOver && (
             <div className="game-over-screen">
-              <h2>You couldn't hold it!</h2>
+              <h2>You pooped yourself!</h2>
               <p>Find a porta-potty next time!</p>
               <button onClick={handleRestart}>Try Again</button>
             </div>
