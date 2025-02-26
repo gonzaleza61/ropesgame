@@ -8,6 +8,7 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [gameWon, setGameWon] = useState(false);
   const [movement, setMovement] = useState({ x: 0, z: 0 });
+  const [isAttacking, setIsAttacking] = useState(false);
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -23,6 +24,13 @@ function App() {
     setGameWon(false);
   };
 
+  const handleAttack = () => {
+    if (!isAttacking) {
+      setIsAttacking(true);
+      setTimeout(() => setIsAttacking(false), 500);
+    }
+  };
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       {!selectedCharacter ? (
@@ -30,7 +38,12 @@ function App() {
       ) : (
         <>
           <Canvas camera={{ position: [0, 5, 10], fov: 60 }}>
-            <Game character={selectedCharacter} onWin={handleGameWin} />
+            <Game
+              character={selectedCharacter}
+              onWin={handleGameWin}
+              movement={movement}
+              isAttacking={isAttacking}
+            />
           </Canvas>
           {gameWon && (
             <div className="win-screen">
@@ -40,7 +53,9 @@ function App() {
           )}
           <div className="controls-container">
             <Joystick onMove={setMovement} />
-            <button className="attack-button">🎯</button>
+            <button className="attack-button" onClick={handleAttack}>
+              🎯
+            </button>
           </div>
         </>
       )}

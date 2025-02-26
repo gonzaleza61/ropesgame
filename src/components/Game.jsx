@@ -3,12 +3,10 @@ import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import Joystick from "./Joystick";
 
-function Game({ character, onWin }) {
+function Game({ character, onWin, movement, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
   const ropeRef = useRef();
-  const [movement, setMovement] = useState({ x: 0, z: 0 });
-  const [isAttacking, setIsAttacking] = useState(false);
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -17,23 +15,9 @@ function Game({ character, onWin }) {
     kris: 2,
   };
 
-  // Handle keyboard, UI controls, and attack
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === " " && !isAttacking) {
-        // Keep only the attack key
-        setIsAttacking(true);
-        setTimeout(() => setIsAttacking(false), 500);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAttacking]);
-
   useFrame((state) => {
     if (playerRef.current) {
-      // Update player position
+      // Use the movement prop directly
       playerRef.current.position.x += movement.x * 0.1;
       playerRef.current.position.z += movement.z * 0.1;
 
