@@ -8,21 +8,21 @@ const characters = [
     name: "Fabian",
     color: "#ff6b6b",
     description: "Long-range grappling hook & 60s bathroom timer",
-    specialty: "Rope Expert",
+    specialty: "Ropes Boss",
   },
   {
     id: "rica",
     name: "Rica",
     color: "#4ecdc4",
     description: "Medium-range grappling hook & 45s bathroom timer",
-    specialty: "Balanced",
+    specialty: "Medium Ropes",
   },
   {
     id: "kris",
     name: "Kris",
     color: "#95a5a6",
     description: "Short-range but fast grappling hook & 30s bathroom timer",
-    specialty: "Speed Demon",
+    specialty: "Rookie",
   },
 ];
 
