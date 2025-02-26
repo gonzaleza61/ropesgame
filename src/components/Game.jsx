@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import Joystick from "./Joystick";
 
-function Game({ character, onWin, movement, isAttacking }) {
+function Game({ character, onWin, movement, rotation, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
   const ropeRef = useRef();
@@ -17,14 +17,24 @@ function Game({ character, onWin, movement, isAttacking }) {
 
   useFrame((state) => {
     if (playerRef.current) {
-      // Use the movement prop directly
+      // Move player
       playerRef.current.position.x += movement.x * 0.1;
       playerRef.current.position.z += movement.z * 0.1;
 
-      // Update camera to follow player
+      // Rotate player based on right joystick
+      if (rotation.x !== 0 || rotation.z !== 0) {
+        const angle = Math.atan2(rotation.x, rotation.z);
+        playerRef.current.rotation.y = angle;
+      }
+
+      // Update camera to follow player with offset
       const playerPos = playerRef.current.position;
       state.camera.position.lerp(
-        new Vector3(playerPos.x, playerPos.y + 5, playerPos.z + 10),
+        new Vector3(
+          playerPos.x - Math.sin(playerRef.current.rotation.y) * 10,
+          playerPos.y + 5,
+          playerPos.z - Math.cos(playerRef.current.rotation.y) * 10
+        ),
         0.1
       );
       state.camera.lookAt(playerPos.x, playerPos.y, playerPos.z);
