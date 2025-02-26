@@ -2,14 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3, Raycaster } from "three";
 import Joystick from "./Joystick";
+import { Text } from "@react-three/drei";
 
-function Game({ character, onWin, movement, isAttacking }) {
+function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
   const cameraRef = useRef({ x: 0, y: 5, z: 10 });
   const [grapplePoint, setGrapplePoint] = useState(null);
   const [isGrappling, setIsGrappling] = useState(false);
   const [ropeCooldown, setRopeCooldown] = useState(false);
+  const [pottyLocations] = useState([
+    [-8, 1, -5],
+    [8, 1, -10],
+    [0, 1, -20],
+  ]);
   const raycaster = new Raycaster();
   const ropeRef = useRef();
 
@@ -63,7 +69,10 @@ function Game({ character, onWin, movement, isAttacking }) {
         raycaster.set(playerPos, direction);
         const intersects = raycaster
           .intersectObjects(state.scene.children, true)
-          .filter((hit) => hit.object.name === "pipe");
+          .filter(
+            (hit) =>
+              hit.object.name === "pipe" || hit.object.name === "grapple-point"
+          );
 
         if (
           intersects.length > 0 &&
@@ -97,6 +106,8 @@ function Game({ character, onWin, movement, isAttacking }) {
       } else if (movement.x !== 0 || movement.z !== 0) {
         // Normal movement when not grappling
         const moveSpeed = 0.08;
+
+        // Fix controls - don't invert
         playerRef.current.position.x += movement.x * moveSpeed;
         playerRef.current.position.z += movement.z * moveSpeed;
 
@@ -104,12 +115,17 @@ function Game({ character, onWin, movement, isAttacking }) {
         playerRef.current.rotation.y = angle;
       }
 
-      // Update camera to follow player from behind and above
+      // Update camera to follow player based on facing direction
       const playerPos = playerRef.current.position;
+      const playerAngle = playerRef.current.rotation.y;
+
+      // Position camera behind player based on facing direction
+      const cameraDistance = 12;
+      const cameraHeight = 8;
       const targetCameraPos = new Vector3(
-        playerPos.x,
-        playerPos.y + 8, // Higher camera
-        playerPos.z - 12 // Camera further back
+        playerPos.x + Math.sin(playerAngle) * cameraDistance,
+        playerPos.y + cameraHeight,
+        playerPos.z + Math.cos(playerAngle) * cameraDistance
       );
 
       // Smooth camera follow
@@ -130,6 +146,23 @@ function Game({ character, onWin, movement, isAttacking }) {
           vanRef.current.position
         );
         if (distance < 2) onWin();
+      }
+
+      // Check for porta-potty collision
+      if (playerRef.current) {
+        const playerPos = playerRef.current.position;
+
+        // Check each porta-potty
+        pottyLocations.forEach((pottyPos) => {
+          const distance = Math.sqrt(
+            Math.pow(playerPos.x - pottyPos[0], 2) +
+              Math.pow(playerPos.z - pottyPos[2], 2)
+          );
+
+          if (distance < 1.5) {
+            onPottyReset();
+          }
+        });
       }
     }
   });
@@ -218,11 +251,74 @@ function Game({ character, onWin, movement, isAttacking }) {
             </mesh>
           </group>
         ))}
+
         {/* Storage tanks */}
         {[...Array(4)].map((_, i) => (
           <mesh key={i} position={[i * 6 - 9, 2, -5]}>
             <cylinderGeometry args={[2, 2, 4]} />
             <meshStandardMaterial color="#666666" />
+          </mesh>
+        ))}
+
+        {/* Additional grapple points */}
+        {[
+          [-5, 4, -10],
+          [5, 4, -10],
+          [-10, 3, -5],
+          [10, 3, -5],
+          [0, 5, -15],
+          [-8, 6, -12],
+          [8, 6, -12],
+          [-3, 7, -8],
+          [3, 7, -8],
+        ].map((pos, i) => (
+          <mesh key={`grapple-${i}`} position={pos} name="grapple-point">
+            <sphereGeometry args={[0.4]} />
+            <meshStandardMaterial
+              color="#ff4500"
+              emissive="#ff2000"
+              emissiveIntensity={0.5}
+            />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Additional obstacles and grapple points in the path to van */}
+      <group>
+        {/* Platforms */}
+        <mesh position={[0, 0.5, -7]} name="platform">
+          <boxGeometry args={[5, 1, 5]} />
+          <meshStandardMaterial color="#555555" />
+        </mesh>
+
+        {/* Vertical poles */}
+        {[
+          [-5, 3, -5],
+          [5, 3, -5],
+          [-3, 4, -10],
+          [3, 4, -10],
+        ].map((pos, i) => (
+          <mesh key={`pole-${i}`} position={pos} name="pipe">
+            <cylinderGeometry args={[0.2, 0.2, 6]} />
+            <meshStandardMaterial color="#aaaaaa" />
+          </mesh>
+        ))}
+
+        {/* Horizontal beams */}
+        {[
+          [0, 6, -5, Math.PI / 2, 0, 0],
+          [0, 6, -10, Math.PI / 2, 0, 0],
+          [-4, 5, -7.5, 0, Math.PI / 2, 0],
+          [4, 5, -7.5, 0, Math.PI / 2, 0],
+        ].map((props, i) => (
+          <mesh
+            key={`beam-${i}`}
+            position={[props[0], props[1], props[2]]}
+            rotation={[props[3], props[4], props[5]]}
+            name="pipe"
+          >
+            <cylinderGeometry args={[0.2, 0.2, 8]} />
+            <meshStandardMaterial color="#aaaaaa" />
           </mesh>
         ))}
       </group>
@@ -305,6 +401,43 @@ function Game({ character, onWin, movement, isAttacking }) {
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#2c3e50" />
       </mesh>
+
+      {/* Porta-potties */}
+      {pottyLocations.map((pos, i) => (
+        <group key={`potty-${i}`} position={[pos[0], pos[1], pos[2]]}>
+          {/* Porta-potty body */}
+          <mesh position={[0, 1, 0]}>
+            <boxGeometry args={[1.2, 2, 1.2]} />
+            <meshStandardMaterial color="#1E88E5" />
+          </mesh>
+          {/* Door */}
+          <mesh position={[0, 1, 0.61]}>
+            <boxGeometry args={[1, 1.8, 0.1]} />
+            <meshStandardMaterial color="#0D47A1" />
+          </mesh>
+          {/* Roof */}
+          <mesh position={[0, 2.1, 0]} rotation={[0, 0, 0]}>
+            <boxGeometry args={[1.4, 0.2, 1.4]} />
+            <meshStandardMaterial color="#0D47A1" />
+          </mesh>
+          {/* Sign */}
+          <mesh position={[0, 1.5, 0.7]} rotation={[0, 0, 0]}>
+            <planeGeometry args={[0.8, 0.3]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+          {/* Text */}
+          <Text
+            position={[0, 1.5, 0.71]}
+            rotation={[0, 0, 0]}
+            fontSize={0.15}
+            color="black"
+            anchorX="center"
+            anchorY="middle"
+          >
+            PortaPotty
+          </Text>
+        </group>
+      ))}
     </>
   );
 }

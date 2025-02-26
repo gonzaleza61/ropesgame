@@ -40,8 +40,8 @@ function Joystick({ onMove }) {
           (clampedDistance - deadZone) / (50 - deadZone);
         const responseValue = Math.pow(normalizedDistance, 1.5); // Exponential response
 
-        // Convert to movement vector (-1 to 1)
-        const moveX = -Math.cos(angle) * responseValue;
+        // Convert to movement vector (-1 to 1) - fixed to not invert
+        const moveX = Math.cos(angle) * responseValue; // Removed negative sign
         const moveZ = Math.sin(angle) * responseValue;
         onMove({ x: moveX, z: moveZ });
       }
