@@ -22,9 +22,10 @@ function Joystick({ onMove }) {
         setPosition({ x: newX, y: newY });
 
         // Convert to movement vector (-1 to 1)
-        const moveX = newX / 50;
-        const moveZ = newY / 50;
-        onMove({ x: moveX, z: -moveZ }); // Invert Z for proper forward/backward
+        // Invert the X and Z values to fix the controls
+        const moveX = -newX / 50; // Invert X
+        const moveZ = newY / 50; // Remove the negative sign from Z
+        onMove({ x: moveX, z: moveZ });
       }
     },
     [dragging, basePosition, onMove]

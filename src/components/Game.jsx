@@ -6,7 +6,7 @@ import Joystick from "./Joystick";
 function Game({ character, onWin, movement, rotation, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
-  const ropeRef = useRef();
+  const cameraRef = useRef({ x: 0, y: 5, z: 10 });
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -15,27 +15,51 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
     kris: 2,
   };
 
+  // Set initial player position and rotation
+  useEffect(() => {
+    if (playerRef.current) {
+      // Position player in front of the van
+      playerRef.current.position.set(-5, 1, 0);
+      // Make player face the van initially
+      playerRef.current.rotation.y = -Math.PI / 2;
+    }
+  }, []);
+
   useFrame((state) => {
     if (playerRef.current) {
-      // Move player
-      playerRef.current.position.x += movement.x * 0.1;
-      playerRef.current.position.z += movement.z * 0.1;
+      // Move player in the direction they're facing when using movement joystick
+      const angle = playerRef.current.rotation.y;
+      const moveX = movement.x * Math.cos(angle) - movement.z * Math.sin(angle);
+      const moveZ = movement.x * Math.sin(angle) + movement.z * Math.cos(angle);
+
+      playerRef.current.position.x += moveX * 0.1;
+      playerRef.current.position.z += moveZ * 0.1;
 
       // Rotate player based on right joystick
       if (rotation.x !== 0 || rotation.z !== 0) {
-        const angle = Math.atan2(rotation.x, rotation.z);
-        playerRef.current.rotation.y = angle;
+        const targetAngle = Math.atan2(rotation.x, rotation.z);
+        // Smooth rotation
+        const currentAngle = playerRef.current.rotation.y;
+        const angleDiff = targetAngle - currentAngle;
+        playerRef.current.rotation.y += angleDiff * 0.1;
       }
 
-      // Update camera to follow player with offset
+      // Update camera position with smooth follow
       const playerPos = playerRef.current.position;
-      state.camera.position.lerp(
-        new Vector3(
-          playerPos.x - Math.sin(playerRef.current.rotation.y) * 10,
-          playerPos.y + 5,
-          playerPos.z - Math.cos(playerRef.current.rotation.y) * 10
-        ),
-        0.1
+      const targetCameraPos = new Vector3(
+        playerPos.x - Math.sin(playerRef.current.rotation.y) * 10,
+        playerPos.y + 5,
+        playerPos.z - Math.cos(playerRef.current.rotation.y) * 10
+      );
+
+      cameraRef.current.x += (targetCameraPos.x - cameraRef.current.x) * 0.1;
+      cameraRef.current.y += (targetCameraPos.y - cameraRef.current.y) * 0.1;
+      cameraRef.current.z += (targetCameraPos.z - cameraRef.current.z) * 0.1;
+
+      state.camera.position.set(
+        cameraRef.current.x,
+        cameraRef.current.y,
+        cameraRef.current.z
       );
       state.camera.lookAt(playerPos.x, playerPos.y, playerPos.z);
 
@@ -139,7 +163,7 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
       </group>
 
       {/* Player */}
-      <group ref={playerRef} position={[0, 1, 0]}>
+      <group ref={playerRef}>
         {renderCharacterModel()}
 
         {/* Attack Rope - now follows player rotation */}
@@ -157,17 +181,24 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
         )}
       </group>
 
-      {/* Van */}
-      <group ref={vanRef} position={[10, 1, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {/* Van - adjusted to fix z-fighting and face player */}
+      <group ref={vanRef} position={[10, 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
         {/* Van body */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[2, 1.5, 4]} />
           <meshStandardMaterial color="white" />
         </mesh>
-        {/* Van cabin */}
-        <mesh position={[0, 0.75, 1.5]}>
+        {/* Van cabin - adjusted position and added depth bias */}
+        <mesh position={[0, 0.75, 1.5]} renderOrder={1}>
           <boxGeometry args={[2, 1, 1]} />
-          <meshStandardMaterial color="lightblue" />
+          <meshStandardMaterial
+            color="lightblue"
+            transparent
+            opacity={0.8}
+            depthWrite={false}
+            polygonOffset={true}
+            polygonOffsetFactor={-1}
+          />
         </mesh>
         {/* Wheels */}
         {[
