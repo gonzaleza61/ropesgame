@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Vector3 } from "three";
+import { Vector3, Raycaster } from "three";
 import Joystick from "./Joystick";
 
 function Game({ character, onWin, movement, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
   const cameraRef = useRef({ x: 0, y: 5, z: 10 });
+  const [grapplePoint, setGrapplePoint] = useState(null);
+  const [isGrappling, setIsGrappling] = useState(false);
+  const raycaster = new Raycaster();
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -18,34 +21,73 @@ function Game({ character, onWin, movement, isAttacking }) {
   // Set initial player position and rotation
   useEffect(() => {
     if (playerRef.current) {
-      // Position player in front of the van
-      playerRef.current.position.set(-5, 1, 0);
-      // Make player face the van initially
-      playerRef.current.rotation.y = -Math.PI / 2;
+      // Position player at origin
+      playerRef.current.position.set(0, 1, 0);
+      // Make player face forward
+      playerRef.current.rotation.y = 0;
     }
   }, []);
 
+  const handleRopeHit = (position) => {
+    setGrapplePoint(position);
+    setIsGrappling(true);
+  };
+
   useFrame((state) => {
     if (playerRef.current) {
-      // Only move and rotate if there's input
-      if (movement.x !== 0 || movement.z !== 0) {
-        // Calculate movement direction
-        const moveSpeed = 0.05;
+      if (isAttacking && !isGrappling) {
+        // Cast ray for rope hit detection
+        const playerPos = playerRef.current.position;
+        const direction = new Vector3(
+          -Math.sin(playerRef.current.rotation.y),
+          0,
+          -Math.cos(playerRef.current.rotation.y)
+        );
+
+        raycaster.set(playerPos, direction);
+        const intersects = raycaster
+          .intersectObjects(state.scene.children, true)
+          .filter((hit) => hit.object.name === "pipe");
+
+        if (
+          intersects.length > 0 &&
+          intersects[0].distance <= ropeLength[character.id]
+        ) {
+          handleRopeHit(intersects[0].point);
+        }
+      }
+
+      if (isGrappling && grapplePoint) {
+        // Pull player towards grapple point
+        const playerPos = playerRef.current.position;
+        const grappleDir = new Vector3()
+          .subVectors(grapplePoint, playerPos)
+          .normalize();
+
+        playerRef.current.position.x += grappleDir.x * 0.2;
+        playerRef.current.position.z += grappleDir.z * 0.2;
+
+        // Stop grappling when close enough
+        if (playerPos.distanceTo(grapplePoint) < 1) {
+          setIsGrappling(false);
+          setGrapplePoint(null);
+        }
+      } else if (movement.x !== 0 || movement.z !== 0) {
+        // Normal movement when not grappling
+        const moveSpeed = 0.08;
         playerRef.current.position.x += movement.x * moveSpeed;
         playerRef.current.position.z += movement.z * moveSpeed;
 
-        // Rotate player to face movement direction
         const angle = Math.atan2(movement.x, movement.z);
         playerRef.current.rotation.y = angle;
       }
 
-      // Update camera to follow player
+      // Update camera to follow player from behind and above
       const playerPos = playerRef.current.position;
-      const cameraOffset = 10;
       const targetCameraPos = new Vector3(
         playerPos.x,
-        playerPos.y + 5,
-        playerPos.z + cameraOffset
+        playerPos.y + 8, // Higher camera
+        playerPos.z - 12 // Camera further back
       );
 
       // Smooth camera follow
@@ -137,14 +179,18 @@ function Game({ character, onWin, movement, isAttacking }) {
 
       {/* Background Refinery */}
       <group position={[0, 0, -20]}>
-        {/* Main pipes */}
+        {/* Main pipes - add name for raycaster */}
         {[...Array(8)].map((_, i) => (
           <group key={i} position={[i * 4 - 16, 0, 0]}>
-            <mesh position={[0, 3, 0]}>
+            <mesh position={[0, 3, 0]} name="pipe">
               <cylinderGeometry args={[0.3, 0.3, 6]} />
               <meshStandardMaterial color="#888888" />
             </mesh>
-            <mesh position={[0, 6, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh
+              position={[0, 6, 0]}
+              rotation={[Math.PI / 2, 0, 0]}
+              name="pipe"
+            >
               <cylinderGeometry args={[0.3, 0.3, 2]} />
               <meshStandardMaterial color="#888888" />
             </mesh>
@@ -163,14 +209,20 @@ function Game({ character, onWin, movement, isAttacking }) {
       <group ref={playerRef}>
         {renderCharacterModel()}
 
-        {/* Attack Rope - now follows player rotation */}
-        {isAttacking && (
+        {/* Attack Rope - now with grapple point */}
+        {(isAttacking || isGrappling) && (
           <mesh
             position={[0, 0, -ropeLength[character.id] / 2]}
             rotation={[0, playerRef.current?.rotation.y || 0, 0]}
           >
             <cylinderGeometry
-              args={[0.05, 0.05, ropeLength[character.id]]}
+              args={[
+                0.05,
+                0.05,
+                isGrappling && grapplePoint
+                  ? playerRef.current.position.distanceTo(grapplePoint)
+                  : ropeLength[character.id],
+              ]}
               rotation={[Math.PI / 2, 0, 0]}
             />
             <meshStandardMaterial color={character.color} />
@@ -178,8 +230,8 @@ function Game({ character, onWin, movement, isAttacking }) {
         )}
       </group>
 
-      {/* Van - adjusted to fix z-fighting and face player */}
-      <group ref={vanRef} position={[10, 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
+      {/* Van - moved in front of starting position */}
+      <group ref={vanRef} position={[0, 1, -15]} rotation={[0, Math.PI, 0]}>
         {/* Van body */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[2, 1.5, 4]} />

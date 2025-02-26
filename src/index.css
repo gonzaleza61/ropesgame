@@ -225,3 +225,14 @@ button:focus-visible {
   align-self: flex-end;
   margin-bottom: 25px;
 }
+
+.mission-objective {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ff3333;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}

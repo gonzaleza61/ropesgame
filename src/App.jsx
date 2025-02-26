@@ -45,6 +45,10 @@ function App() {
               isAttacking={isAttacking}
             />
           </Canvas>
+          {/* Mission Objective for Kris */}
+          {selectedCharacter.id === "kris" && (
+            <div className="mission-objective">Mission: Get Rica Fired</div>
+          )}
           {gameWon && (
             <div className="win-screen">
               <h2>You made it to the van!</h2>
