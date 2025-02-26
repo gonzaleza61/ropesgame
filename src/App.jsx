@@ -14,6 +14,9 @@ function App() {
   const [pottyTimerMax, setPottyTimerMax] = useState(null);
   const [showRopeCooldown, setShowRopeCooldown] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
+  const [alcoholTimer, setAlcoholTimer] = useState(null);
+  const [alcoholTimerMax, setAlcoholTimerMax] = useState(45); // 45 seconds of alcohol effect
+  const [isSober, setIsSober] = useState(false);
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -28,6 +31,10 @@ function App() {
     };
     setPottyTimer(timers[character.id]);
     setPottyTimerMax(timers[character.id]);
+
+    // Initialize alcohol timer
+    setAlcoholTimer(alcoholTimerMax);
+    setIsSober(false);
   };
 
   const handleGameWin = () => {
@@ -60,7 +67,18 @@ function App() {
   };
 
   const togglePhone = () => {
-    setShowPhone((prev) => !prev);
+    console.log("Toggle phone called, current state:", showPhone);
+    setShowPhone(!showPhone);
+  };
+
+  const handleAlcoholRefill = () => {
+    // Reset the alcohol timer when player visits the bar
+    setAlcoholTimer(alcoholTimerMax);
+    setIsSober(false);
+  };
+
+  const handleSober = () => {
+    setIsSober(true);
   };
 
   // Update potty timer
@@ -80,6 +98,23 @@ function App() {
     }
   }, [pottyTimer, gameWon, gameOver]);
 
+  // Update alcohol timer
+  useEffect(() => {
+    if (alcoholTimer && !gameWon && !gameOver && !isSober) {
+      const interval = setInterval(() => {
+        setAlcoholTimer((prev) => {
+          if (prev <= 1) {
+            handleSober();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [alcoholTimer, gameWon, gameOver, isSober]);
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       {!selectedCharacter ? (
@@ -91,15 +126,19 @@ function App() {
               character={selectedCharacter}
               onWin={handleGameWin}
               onPottyReset={handlePottyReset}
+              onAlcoholRefill={handleAlcoholRefill}
               movement={movement}
               isAttacking={isAttacking}
             />
           </Canvas>
 
-          {/* Mission Objective for Kris */}
-          {selectedCharacter.id === "kris" && (
-            <div className="mission-objective">Mission: Get Rica Fired</div>
-          )}
+          {/* Mission Objective for all players */}
+          <div className="mission-objective">
+            <span className="mission-title">Mission:</span> Get to the Van!
+            {selectedCharacter.id === "kris" && (
+              <div className="sub-mission">Secondary: Get Rica Fired</div>
+            )}
+          </div>
 
           {/* Potty Timer */}
           {pottyTimer && (
@@ -118,6 +157,22 @@ function App() {
             </div>
           )}
 
+          {alcoholTimer && (
+            <div className="alcohol-timer">
+              <div className="alcohol-label">Buzz Level:</div>
+              <div className="timer-bar-container">
+                <div
+                  className="timer-bar"
+                  style={{
+                    width: `${(alcoholTimer / alcoholTimerMax) * 100}%`,
+                    backgroundColor: alcoholTimer < 10 ? "#ff9933" : "#33cc33",
+                  }}
+                ></div>
+              </div>
+              <div className="timer-text">{alcoholTimer}s</div>
+            </div>
+          )}
+
           {gameWon && (
             <div className="win-screen">
               <h2>You made it to the van!</h2>
@@ -129,6 +184,14 @@ function App() {
             <div className="game-over-screen">
               <h2>You pooped yourself!</h2>
               <p>Find a porta-potty next time!</p>
+              <button onClick={handleRestart}>Try Again</button>
+            </div>
+          )}
+
+          {isSober && (
+            <div className="game-over-screen sober-screen">
+              <h2>You're Sober! You Lose!</h2>
+              <p>Get back to the bar for another drink!</p>
               <button onClick={handleRestart}>Try Again</button>
             </div>
           )}
@@ -156,17 +219,7 @@ function App() {
               </button>
             </div>
             <div className="phone-button-container">
-              <button
-                className="phone-button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  togglePhone();
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  togglePhone();
-                }}
-              >
+              <button className="phone-button" onClick={() => togglePhone()}>
                 📱
               </button>
             </div>

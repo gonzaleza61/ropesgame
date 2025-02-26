@@ -4,7 +4,14 @@ import { Vector3, Raycaster } from "three";
 import Joystick from "./Joystick";
 import { Text, Sky, Stars } from "@react-three/drei";
 
-function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
+function Game({
+  character,
+  onWin,
+  onPottyReset,
+  onSober,
+  movement,
+  isAttacking,
+}) {
   const playerRef = useRef();
   const vanRef = useRef();
   const cameraRef = useRef({ x: 0, y: 5, z: 10 });
@@ -18,6 +25,8 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
   ]);
   const raycaster = new Raycaster();
   const ropeRef = useRef();
+  const [alcoholLevel, setAlcoholLevel] = useState(null);
+  const [barLocation] = useState([12, 1, -15]); // Position of the bar
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -54,6 +63,28 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
       setRopeCooldown(false);
     }, 1000); // 1 second cooldown
   };
+
+  // Check if player is near the bar
+  useEffect(() => {
+    const checkBarProximity = () => {
+      if (playerRef.current) {
+        const playerPos = playerRef.current.position;
+        const barPos = new Vector3(
+          barLocation[0],
+          barLocation[1],
+          barLocation[2]
+        );
+
+        // If player is close to the bar, refill alcohol
+        if (playerPos.distanceTo(barPos) < 3) {
+          onAlcoholRefill();
+        }
+      }
+    };
+
+    const interval = setInterval(checkBarProximity, 500);
+    return () => clearInterval(interval);
+  }, [barLocation, onAlcoholRefill]);
 
   useFrame((state) => {
     if (playerRef.current) {
@@ -579,6 +610,62 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
             </Text>
           </group>
         </group>
+      </group>
+
+      {/* Clutch Bar */}
+      <group position={[barLocation[0], barLocation[1], barLocation[2]]}>
+        {/* Bar building */}
+        <mesh position={[0, 2, 0]}>
+          <boxGeometry args={[6, 4, 5]} />
+          <meshStandardMaterial color="#8B4513" />
+        </mesh>
+
+        {/* Roof */}
+        <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]}>
+          <coneGeometry args={[4.5, 2, 4]} />
+          <meshStandardMaterial color="#A52A2A" />
+        </mesh>
+
+        {/* Door */}
+        <mesh position={[0, 1.5, 2.51]}>
+          <boxGeometry args={[1.5, 3, 0.1]} />
+          <meshStandardMaterial color="#4d2600" />
+        </mesh>
+
+        {/* Windows */}
+        <mesh position={[-2, 2.5, 2.51]}>
+          <boxGeometry args={[1, 1, 0.1]} />
+          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
+        </mesh>
+        <mesh position={[2, 2.5, 2.51]}>
+          <boxGeometry args={[1, 1, 0.1]} />
+          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
+        </mesh>
+
+        {/* Bar sign */}
+        <group position={[0, 5.5, 0]}>
+          <Text
+            position={[0, 0, 2.6]}
+            fontSize={0.8}
+            color="#FF0000"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.05}
+            outlineColor="#000000"
+          >
+            CLUTCH
+          </Text>
+        </group>
+
+        {/* Neon light around sign */}
+        <mesh position={[0, 5.5, 2.6]}>
+          <torusGeometry args={[1.5, 0.05, 16, 32]} />
+          <meshStandardMaterial
+            color="#FF00FF"
+            emissive="#FF00FF"
+            emissiveIntensity={2}
+          />
+        </mesh>
       </group>
 
       {/* Ground */}

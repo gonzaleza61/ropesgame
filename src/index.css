@@ -330,11 +330,25 @@ button:focus-visible {
   position: fixed;
   top: 20px;
   left: 20px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #ff3333;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 1rem;
   z-index: 1000;
+  border-left: 3px solid #ff9900;
+}
+
+.mission-title {
+  font-weight: bold;
+  color: #ff9900;
+}
+
+.sub-mission {
+  font-size: 0.9rem;
+  margin-top: 5px;
+  color: #cccccc;
+  font-style: italic;
 }
 
 /* Add these styles to prevent browser movement */
@@ -474,7 +488,7 @@ body {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   font-size: 2rem;
   display: flex;
@@ -485,6 +499,7 @@ body {
   cursor: pointer;
   padding: 0;
   z-index: 1001;
+  pointer-events: auto;
 }
 
 /* Phone UI styles */
@@ -498,7 +513,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 3000;
+  pointer-events: auto;
 }
 
 .phone-ui {
@@ -568,4 +584,29 @@ body {
   display: block;
   text-align: right;
   margin-top: 5px;
+}
+
+/* Alcohol timer styles */
+.alcohol-timer {
+  position: fixed;
+  top: 120px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 200px;
+}
+
+.alcohol-label {
+  font-size: 0.9rem;
+  color: white;
+}
+
+/* Sober screen specific styles */
+.sober-screen h2 {
+  color: #33cc33;
 }
