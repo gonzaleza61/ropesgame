@@ -161,7 +161,7 @@ button:focus-visible {
 
 .attack-button {
   position: fixed;
-  bottom: 50%;
+  bottom: 20px;
   right: 20px;
   width: 70px;
   height: 70px;
@@ -173,7 +173,7 @@ button:focus-visible {
   cursor: pointer;
   pointer-events: auto;
   z-index: 1000;
-  transform: translateY(50%);
+  transform: none;
 }
 
 .attack-button:active {
@@ -184,7 +184,7 @@ button:focus-visible {
   position: fixed;
   bottom: 20px;
   left: 0;
-  right: 0;
+  right: 90px;
   display: flex;
   justify-content: space-between;
   padding: 0 20px;
