@@ -32,16 +32,17 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
       const moveX = movement.x * Math.cos(angle) - movement.z * Math.sin(angle);
       const moveZ = movement.x * Math.sin(angle) + movement.z * Math.cos(angle);
 
-      playerRef.current.position.x += moveX * 0.1;
-      playerRef.current.position.z += moveZ * 0.1;
+      // Reduce movement speed from 0.1 to 0.05
+      playerRef.current.position.x += moveX * 0.05;
+      playerRef.current.position.z += moveZ * 0.05;
 
       // Rotate player based on right joystick
       if (rotation.x !== 0 || rotation.z !== 0) {
         const targetAngle = Math.atan2(rotation.x, rotation.z);
-        // Smooth rotation
+        // Smooth rotation - reduce rotation speed from 0.1 to 0.05
         const currentAngle = playerRef.current.rotation.y;
         const angleDiff = targetAngle - currentAngle;
-        playerRef.current.rotation.y += angleDiff * 0.1;
+        playerRef.current.rotation.y += angleDiff * 0.05;
       }
 
       // Update camera position with smooth follow
@@ -52,9 +53,10 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
         playerPos.z - Math.cos(playerRef.current.rotation.y) * 10
       );
 
-      cameraRef.current.x += (targetCameraPos.x - cameraRef.current.x) * 0.1;
-      cameraRef.current.y += (targetCameraPos.y - cameraRef.current.y) * 0.1;
-      cameraRef.current.z += (targetCameraPos.z - cameraRef.current.z) * 0.1;
+      // Reduce camera follow speed from 0.1 to 0.05
+      cameraRef.current.x += (targetCameraPos.x - cameraRef.current.x) * 0.05;
+      cameraRef.current.y += (targetCameraPos.y - cameraRef.current.y) * 0.05;
+      cameraRef.current.z += (targetCameraPos.z - cameraRef.current.z) * 0.05;
 
       state.camera.position.set(
         cameraRef.current.x,
