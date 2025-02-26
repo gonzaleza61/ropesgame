@@ -8,7 +8,6 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [gameWon, setGameWon] = useState(false);
   const [movement, setMovement] = useState({ x: 0, z: 0 });
-  const [rotation, setRotation] = useState({ x: 0, z: 0 });
   const [isAttacking, setIsAttacking] = useState(false);
 
   const handleCharacterSelect = (character) => {
@@ -43,7 +42,6 @@ function App() {
               character={selectedCharacter}
               onWin={handleGameWin}
               movement={movement}
-              rotation={rotation}
               isAttacking={isAttacking}
             />
           </Canvas>
@@ -55,13 +53,10 @@ function App() {
           )}
           <div className="controls-container">
             <Joystick onMove={setMovement} />
-            <div className="right-controls">
-              <Joystick onMove={setRotation} />
-            </div>
+            <button className="attack-button" onClick={handleAttack}>
+              🎯
+            </button>
           </div>
-          <button className="attack-button" onClick={handleAttack}>
-            🎯
-          </button>
         </>
       )}
     </div>

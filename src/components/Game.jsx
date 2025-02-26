@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import Joystick from "./Joystick";
 
-function Game({ character, onWin, movement, rotation, isAttacking }) {
+function Game({ character, onWin, movement, isAttacking }) {
   const playerRef = useRef();
   const vanRef = useRef();
   const cameraRef = useRef({ x: 0, y: 5, z: 10 });
@@ -27,33 +27,28 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
 
   useFrame((state) => {
     if (playerRef.current) {
-      // Move player in the direction they're facing when using movement joystick
-      const angle = playerRef.current.rotation.y;
-      const moveX = movement.x * Math.cos(angle) - movement.z * Math.sin(angle);
-      const moveZ = movement.x * Math.sin(angle) + movement.z * Math.cos(angle);
+      // Only move and rotate if there's input
+      if (movement.x !== 0 || movement.z !== 0) {
+        // Calculate movement direction
+        const moveSpeed = 0.05;
+        playerRef.current.position.x += movement.x * moveSpeed;
+        playerRef.current.position.z += movement.z * moveSpeed;
 
-      // Reduce movement speed from 0.1 to 0.05
-      playerRef.current.position.x += moveX * 0.05;
-      playerRef.current.position.z += moveZ * 0.05;
-
-      // Rotate player based on right joystick
-      if (rotation.x !== 0 || rotation.z !== 0) {
-        const targetAngle = Math.atan2(rotation.x, rotation.z);
-        // Smooth rotation - reduce rotation speed from 0.1 to 0.05
-        const currentAngle = playerRef.current.rotation.y;
-        const angleDiff = targetAngle - currentAngle;
-        playerRef.current.rotation.y += angleDiff * 0.05;
+        // Rotate player to face movement direction
+        const angle = Math.atan2(movement.x, movement.z);
+        playerRef.current.rotation.y = angle;
       }
 
-      // Update camera position with smooth follow
+      // Update camera to follow player
       const playerPos = playerRef.current.position;
+      const cameraOffset = 10;
       const targetCameraPos = new Vector3(
-        playerPos.x - Math.sin(playerRef.current.rotation.y) * 10,
+        playerPos.x,
         playerPos.y + 5,
-        playerPos.z - Math.cos(playerRef.current.rotation.y) * 10
+        playerPos.z + cameraOffset
       );
 
-      // Reduce camera follow speed from 0.1 to 0.05
+      // Smooth camera follow
       cameraRef.current.x += (targetCameraPos.x - cameraRef.current.x) * 0.05;
       cameraRef.current.y += (targetCameraPos.y - cameraRef.current.y) * 0.05;
       cameraRef.current.z += (targetCameraPos.z - cameraRef.current.z) * 0.05;
