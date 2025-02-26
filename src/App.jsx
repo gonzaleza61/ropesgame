@@ -12,6 +12,8 @@ function App() {
   const [isAttacking, setIsAttacking] = useState(false);
   const [pottyTimer, setPottyTimer] = useState(null);
   const [pottyTimerMax, setPottyTimerMax] = useState(null);
+  const [showRopeCooldown, setShowRopeCooldown] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -44,15 +46,21 @@ function App() {
   };
 
   const handleAttack = () => {
-    if (!isAttacking) {
+    if (!isAttacking && !showRopeCooldown) {
       setIsAttacking(true);
+      setShowRopeCooldown(true);
       setTimeout(() => setIsAttacking(false), 500);
+      setTimeout(() => setShowRopeCooldown(false), 1000);
     }
   };
 
   const handlePottyReset = () => {
     // Reset the timer when player finds a portapotty
     setPottyTimer(pottyTimerMax);
+  };
+
+  const togglePhone = () => {
+    setShowPhone((prev) => !prev);
   };
 
   // Update potty timer
@@ -127,20 +135,60 @@ function App() {
 
           <div className="controls-container">
             <Joystick onMove={setMovement} />
-            <button
-              className="attack-button"
-              onClick={(e) => {
-                e.preventDefault();
-                handleAttack();
-              }}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleAttack();
-              }}
-            >
-              🎯
-            </button>
+            <div className="attack-button-container">
+              {showRopeCooldown && (
+                <div className="rope-cooldown">
+                  <div className="rope-cooldown-progress"></div>
+                </div>
+              )}
+              <button
+                className="attack-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleAttack();
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleAttack();
+                }}
+              >
+                🎯
+              </button>
+            </div>
+            <div className="phone-button-container">
+              <button
+                className="phone-button"
+                onClick={togglePhone}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  togglePhone();
+                }}
+              >
+                📱
+              </button>
+            </div>
           </div>
+
+          {/* Phone UI */}
+          {showPhone && (
+            <div className="phone-overlay">
+              <div className="phone-ui">
+                <div className="phone-header">
+                  <div className="phone-title">Messages</div>
+                  <button className="phone-close" onClick={togglePhone}>
+                    ✕
+                  </button>
+                </div>
+                <div className="phone-content">
+                  <div className="message-contact">Jerry Nguyen</div>
+                  <div className="message-bubble">
+                    <p>Do you want to buy a forklift?</p>
+                    <span className="message-time">Just now</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

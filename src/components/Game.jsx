@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3, Raycaster } from "three";
 import Joystick from "./Joystick";
-import { Text } from "@react-three/drei";
+import { Text, Sky, Stars } from "@react-three/drei";
 
 function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
   const playerRef = useRef();
@@ -233,6 +233,22 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
 
+      {/* Add realistic sky */}
+      <Sky
+        distance={450000}
+        sunPosition={[0, 1, 0]}
+        inclination={0.6}
+        azimuth={0.25}
+      />
+      <Stars
+        radius={100}
+        depth={50}
+        count={5000}
+        factor={4}
+        saturation={0}
+        fade
+      />
+
       {/* Background Refinery */}
       <group position={[0, 0, -20]}>
         {/* Main pipes - add name for raycaster */}
@@ -328,40 +344,13 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
       <group ref={playerRef}>
         {renderCharacterModel()}
 
-        {/* Improved rope visualization */}
+        {/* Fixed rope visualization - remove the first mesh that was causing the upward rope */}
         {(isAttacking || isGrappling) && (
           <group>
-            {/* Rope */}
-            <mesh
-              ref={ropeRef}
-              position={[0, 0, 0]} // Center position
-            >
-              <cylinderGeometry
-                args={[
-                  0.05,
-                  0.05,
-                  isGrappling && grapplePoint
-                    ? playerRef.current.position.distanceTo(grapplePoint)
-                    : ropeLength[character.id],
-                ]}
-                // Properly orient the rope in the player's facing direction
-                rotation={[Math.PI / 2, 0, 0]}
-              />
-              <meshStandardMaterial color={character.color} />
-            </mesh>
-
-            {/* Adjust the rope to point in the right direction */}
             {isGrappling && grapplePoint ? (
               // When grappling, point directly to grapple point
-              <group position={[0, 0, 0]} lookAt={grapplePoint}>
-                <mesh
-                  position={[
-                    0,
-                    0,
-                    playerRef.current.position.distanceTo(grapplePoint) / 2,
-                  ]}
-                  rotation={[Math.PI / 2, 0, 0]}
-                >
+              <group position={[0, 0, 0]}>
+                <mesh>
                   <cylinderGeometry
                     args={[
                       0.05,
@@ -432,12 +421,6 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
         ))}
       </group>
 
-      {/* Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#2c3e50" />
-      </mesh>
-
       {/* Porta-potties */}
       {pottyLocations.map((pos, i) => (
         <group key={`potty-${i}`} position={[pos[0], pos[1], pos[2]]}>
@@ -474,6 +457,129 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
           </Text>
         </group>
       ))}
+
+      {/* Paul and 18-wheeler truck */}
+      <group position={[15, 0, -8]} rotation={[0, -Math.PI / 4, 0]}>
+        {/* 18-wheeler truck */}
+        <group>
+          {/* Truck cab */}
+          <mesh position={[0, 2, 0]}>
+            <boxGeometry args={[3, 2.5, 5]} />
+            <meshStandardMaterial color="#D32F2F" />
+          </mesh>
+
+          {/* Windshield */}
+          <mesh position={[0, 2.8, 2]} rotation={[Math.PI / 8, 0, 0]}>
+            <boxGeometry args={[2.8, 1.2, 0.1]} />
+            <meshStandardMaterial color="#90CAF9" transparent opacity={0.7} />
+          </mesh>
+
+          {/* Truck grille */}
+          <mesh position={[0, 1.5, 2.5]}>
+            <boxGeometry args={[2.8, 1, 0.2]} />
+            <meshStandardMaterial color="#333333" />
+          </mesh>
+
+          {/* Truck trailer */}
+          <mesh position={[0, 2, -8]}>
+            <boxGeometry args={[2.8, 3, 16]} />
+            <meshStandardMaterial color="#EEEEEE" />
+          </mesh>
+
+          {/* Wheels - cab */}
+          {[
+            [-1.5, 0.6, 1.5],
+            [1.5, 0.6, 1.5],
+            [-1.5, 0.6, -0.5],
+            [1.5, 0.6, -0.5],
+          ].map((pos, i) => (
+            <mesh
+              key={`wheel-cab-${i}`}
+              position={pos}
+              rotation={[0, 0, Math.PI / 2]}
+            >
+              <cylinderGeometry args={[0.6, 0.6, 0.4, 16]} />
+              <meshStandardMaterial color="#111111" />
+            </mesh>
+          ))}
+
+          {/* Wheels - trailer (multiple axles) */}
+          {[...Array(8)].map((_, i) => (
+            <group key={`wheel-group-${i}`}>
+              <mesh
+                position={[-1.5, 0.6, -4 - i]}
+                rotation={[0, 0, Math.PI / 2]}
+              >
+                <cylinderGeometry args={[0.6, 0.6, 0.4, 16]} />
+                <meshStandardMaterial color="#111111" />
+              </mesh>
+              <mesh
+                position={[1.5, 0.6, -4 - i]}
+                rotation={[0, 0, Math.PI / 2]}
+              >
+                <cylinderGeometry args={[0.6, 0.6, 0.4, 16]} />
+                <meshStandardMaterial color="#111111" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+
+        {/* Paul character */}
+        <group position={[0, 1, 3.5]}>
+          {/* Body */}
+          <mesh position={[0, 0.8, 0]}>
+            <boxGeometry args={[0.7, 1.2, 0.4]} />
+            <meshStandardMaterial color="#3F51B5" /> {/* Blue shirt */}
+          </mesh>
+
+          {/* Head */}
+          <mesh position={[0, 1.7, 0]}>
+            <sphereGeometry args={[0.3]} />
+            <meshStandardMaterial color="#FFD180" /> {/* Skin tone */}
+          </mesh>
+
+          {/* Legs */}
+          <mesh position={[-0.2, 0, 0]}>
+            <boxGeometry args={[0.2, 0.8, 0.3]} />
+            <meshStandardMaterial color="#424242" /> {/* Dark pants */}
+          </mesh>
+          <mesh position={[0.2, 0, 0]}>
+            <boxGeometry args={[0.2, 0.8, 0.3]} />
+            <meshStandardMaterial color="#424242" /> {/* Dark pants */}
+          </mesh>
+
+          {/* Arms */}
+          <mesh position={[-0.45, 0.9, 0]}>
+            <boxGeometry args={[0.2, 0.6, 0.3]} />
+            <meshStandardMaterial color="#3F51B5" /> {/* Blue shirt */}
+          </mesh>
+          <mesh position={[0.45, 0.9, 0]}>
+            <boxGeometry args={[0.2, 0.6, 0.3]} />
+            <meshStandardMaterial color="#3F51B5" /> {/* Blue shirt */}
+          </mesh>
+
+          {/* Hat */}
+          <mesh position={[0, 2, 0]}>
+            <cylinderGeometry args={[0.3, 0.35, 0.2]} />
+            <meshStandardMaterial color="#795548" /> {/* Brown hat */}
+          </mesh>
+
+          {/* Name label */}
+          <group position={[0, 2.3, 0]}>
+            <Text
+              position={[0, 0, 0]}
+              fontSize={0.3}
+              color="white"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.02}
+              outlineColor="#000000"
+            >
+              Paul
+            </Text>
+          </group>
+        </group>
+      </group>
     </>
   );
 }

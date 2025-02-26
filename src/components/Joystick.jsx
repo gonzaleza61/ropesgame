@@ -5,6 +5,7 @@ function Joystick({ onMove }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [basePosition, setBasePosition] = useState({ x: 0, y: 0 });
   const [deadZone, setDeadZone] = useState(5); // Add dead zone for better control
+  const [turnSensitivity, setTurnSensitivity] = useState(0.7); // Reduce turn sensitivity
 
   const handleMove = useCallback(
     (clientX, clientY, e) => {
@@ -38,15 +39,18 @@ function Joystick({ onMove }) {
         // Apply non-linear response for better control
         const normalizedDistance =
           (clampedDistance - deadZone) / (50 - deadZone);
-        const responseValue = Math.pow(normalizedDistance, 1.5); // Exponential response
 
-        // Convert to movement vector (-1 to 1) - fixed to not invert
-        const moveX = Math.cos(angle) * responseValue; // Removed negative sign
+        // Smoother movement with less aggressive turning
+        // Forward/backward movement is more sensitive than turning
         const moveZ = Math.sin(angle) * responseValue;
+
+        // Apply turn sensitivity to make turning less aggressive
+        const moveX = Math.cos(angle) * responseValue * turnSensitivity;
+
         onMove({ x: moveX, z: moveZ });
       }
     },
-    [dragging, basePosition, onMove, deadZone]
+    [dragging, basePosition, onMove, deadZone, turnSensitivity]
   );
 
   const handleStart = useCallback((clientX, clientY, e) => {
