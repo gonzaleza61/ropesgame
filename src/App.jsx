@@ -158,8 +158,11 @@ function App() {
             <div className="phone-button-container">
               <button
                 className="phone-button"
-                onClick={togglePhone}
-                onTouchStart={(e) => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  togglePhone();
+                }}
+                onTouchEnd={(e) => {
                   e.preventDefault();
                   togglePhone();
                 }}
