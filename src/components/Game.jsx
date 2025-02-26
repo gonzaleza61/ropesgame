@@ -8,7 +8,7 @@ function Game({
   character,
   onWin,
   onPottyReset,
-  onSober,
+  onAlcoholRefill,
   movement,
   isAttacking,
 }) {
