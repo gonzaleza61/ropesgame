@@ -39,6 +39,66 @@ function Game({ character, onWin, movement, isAttacking }) {
     }
   });
 
+  const renderCharacterModel = () => {
+    switch (character.id) {
+      case "fabian":
+      case "rica":
+        return (
+          <>
+            {/* Slim Body */}
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[0.6, 0.8, 0.4]} />
+              <meshStandardMaterial color="#FFE4E1" />{" "}
+              {/* White-ish skin tone */}
+            </mesh>
+            {/* Head */}
+            <mesh position={[0, 0.6, 0]}>
+              <sphereGeometry args={[0.2]} />
+              <meshStandardMaterial color="#FFE4E1" />
+            </mesh>
+            {/* Gold Hat */}
+            <mesh position={[0, 0.85, 0]}>
+              <cylinderGeometry args={[0.25, 0.25, 0.2]} />
+              <meshStandardMaterial color="#FFD700" /> {/* Gold color */}
+            </mesh>
+            {/* Slim Arms */}
+            <mesh position={[-0.35, 0, 0]}>
+              <boxGeometry args={[0.15, 0.5, 0.15]} />
+              <meshStandardMaterial color="#FFE4E1" />
+            </mesh>
+            <mesh position={[0.35, 0, 0]}>
+              <boxGeometry args={[0.15, 0.5, 0.15]} />
+              <meshStandardMaterial color="#FFE4E1" />
+            </mesh>
+          </>
+        );
+      case "kris":
+        return (
+          <>
+            {/* Fat Body */}
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[1, 0.8, 0.8]} />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            {/* Head */}
+            <mesh position={[0, 0.6, 0]}>
+              <sphereGeometry args={[0.3]} />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            {/* Fat Arms */}
+            <mesh position={[-0.6, 0, 0]}>
+              <boxGeometry args={[0.2, 0.6, 0.2]} />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+            <mesh position={[0.6, 0, 0]}>
+              <boxGeometry args={[0.2, 0.6, 0.2]} />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+          </>
+        );
+    }
+  };
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -70,25 +130,7 @@ function Game({ character, onWin, movement, isAttacking }) {
 
       {/* Player */}
       <group ref={playerRef} position={[0, 1, 0]}>
-        {/* Body - made wider */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[1, 0.8, 0.8]} />
-          <meshStandardMaterial color="#8B4513" /> {/* Brown color */}
-        </mesh>
-        {/* Head - made larger */}
-        <mesh position={[0, 0.6, 0]}>
-          <sphereGeometry args={[0.3]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-        {/* Arms - adjusted position for wider body */}
-        <mesh position={[-0.6, 0, 0]}>
-          <boxGeometry args={[0.2, 0.6, 0.2]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-        <mesh position={[0.6, 0, 0]}>
-          <boxGeometry args={[0.2, 0.6, 0.2]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
+        {renderCharacterModel()}
 
         {/* Attack Rope */}
         {isAttacking && (
