@@ -9,13 +9,22 @@ function Game({ character, onWin, movement, isAttacking }) {
   const cameraRef = useRef({ x: 0, y: 5, z: 10 });
   const [grapplePoint, setGrapplePoint] = useState(null);
   const [isGrappling, setIsGrappling] = useState(false);
+  const [ropeCooldown, setRopeCooldown] = useState(false);
   const raycaster = new Raycaster();
+  const ropeRef = useRef();
 
   // Rope lengths for different characters
   const ropeLength = {
-    fabian: 6,
-    rica: 4,
-    kris: 2,
+    fabian: 10, // Increased range
+    rica: 7, // Increased range
+    kris: 4, // Increased range
+  };
+
+  // Rope speeds for different characters
+  const ropeSpeed = {
+    fabian: 0.15, // Slower but longer range
+    rica: 0.2, // Medium speed and range
+    kris: 0.3, // Faster but shorter range
   };
 
   // Set initial player position and rotation
@@ -28,15 +37,22 @@ function Game({ character, onWin, movement, isAttacking }) {
     }
   }, []);
 
+  // Handle rope hit and grappling
   const handleRopeHit = (position) => {
     setGrapplePoint(position);
     setIsGrappling(true);
+
+    // Add rope cooldown
+    setRopeCooldown(true);
+    setTimeout(() => {
+      setRopeCooldown(false);
+    }, 1000); // 1 second cooldown
   };
 
   useFrame((state) => {
     if (playerRef.current) {
-      if (isAttacking && !isGrappling) {
-        // Cast ray for rope hit detection
+      // Rope hit detection
+      if (isAttacking && !isGrappling && !ropeCooldown) {
         const playerPos = playerRef.current.position;
         const direction = new Vector3(
           -Math.sin(playerRef.current.rotation.y),
@@ -57,15 +73,21 @@ function Game({ character, onWin, movement, isAttacking }) {
         }
       }
 
+      // Grappling movement
       if (isGrappling && grapplePoint) {
-        // Pull player towards grapple point
         const playerPos = playerRef.current.position;
         const grappleDir = new Vector3()
           .subVectors(grapplePoint, playerPos)
           .normalize();
 
-        playerRef.current.position.x += grappleDir.x * 0.2;
-        playerRef.current.position.z += grappleDir.z * 0.2;
+        // Use character-specific rope speed
+        const speed = ropeSpeed[character.id];
+        playerRef.current.position.x += grappleDir.x * speed;
+        playerRef.current.position.z += grappleDir.z * speed;
+
+        // Rotate player to face grapple point
+        const targetAngle = Math.atan2(grappleDir.x, grappleDir.z);
+        playerRef.current.rotation.y = targetAngle;
 
         // Stop grappling when close enough
         if (playerPos.distanceTo(grapplePoint) < 1) {
@@ -209,24 +231,36 @@ function Game({ character, onWin, movement, isAttacking }) {
       <group ref={playerRef}>
         {renderCharacterModel()}
 
-        {/* Attack Rope - now with grapple point */}
+        {/* Improved rope visualization */}
         {(isAttacking || isGrappling) && (
-          <mesh
-            position={[0, 0, -ropeLength[character.id] / 2]}
-            rotation={[0, playerRef.current?.rotation.y || 0, 0]}
-          >
-            <cylinderGeometry
-              args={[
-                0.05,
-                0.05,
-                isGrappling && grapplePoint
-                  ? playerRef.current.position.distanceTo(grapplePoint)
-                  : ropeLength[character.id],
-              ]}
-              rotation={[Math.PI / 2, 0, 0]}
-            />
-            <meshStandardMaterial color={character.color} />
-          </mesh>
+          <group>
+            {/* Rope */}
+            <mesh
+              ref={ropeRef}
+              position={[0, 0, -ropeLength[character.id] / 2]}
+              rotation={[0, playerRef.current?.rotation.y || 0, 0]}
+            >
+              <cylinderGeometry
+                args={[
+                  0.05,
+                  0.05,
+                  isGrappling && grapplePoint
+                    ? playerRef.current.position.distanceTo(grapplePoint)
+                    : ropeLength[character.id],
+                ]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <meshStandardMaterial color={character.color} />
+            </mesh>
+
+            {/* Rope hook/end */}
+            {isGrappling && grapplePoint && (
+              <mesh position={grapplePoint}>
+                <sphereGeometry args={[0.1]} />
+                <meshStandardMaterial color={character.color} />
+              </mesh>
+            )}
+          </group>
         )}
       </group>
 
