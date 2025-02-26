@@ -7,7 +7,13 @@ function Joystick({ onMove }) {
   const [deadZone, setDeadZone] = useState(5); // Add dead zone for better control
 
   const handleMove = useCallback(
-    (clientX, clientY) => {
+    (clientX, clientY, e) => {
+      // Prevent default browser behavior
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       if (dragging && basePosition.x !== 0) {
         const deltaX = clientX - basePosition.x;
         const deltaY = clientY - basePosition.y;
@@ -43,29 +49,49 @@ function Joystick({ onMove }) {
     [dragging, basePosition, onMove, deadZone]
   );
 
-  const handleStart = useCallback((clientX, clientY) => {
+  const handleStart = useCallback((clientX, clientY, e) => {
+    // Prevent default browser behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     setDragging(true);
     setBasePosition({ x: clientX, y: clientY });
   }, []);
 
-  const handleEnd = useCallback(() => {
-    setDragging(false);
-    setPosition({ x: 0, y: 0 });
-    setBasePosition({ x: 0, y: 0 });
-    onMove({ x: 0, z: 0 });
-  }, [onMove]);
+  const handleEnd = useCallback(
+    (e) => {
+      // Prevent default browser behavior
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      setDragging(false);
+      setPosition({ x: 0, y: 0 });
+      setBasePosition({ x: 0, y: 0 });
+      onMove({ x: 0, z: 0 });
+    },
+    [onMove]
+  );
 
   useEffect(() => {
-    const handleMouseMove = (e) => handleMove(e.clientX, e.clientY);
+    const handleMouseMove = (e) => {
+      e.preventDefault();
+      handleMove(e.clientX, e.clientY, e);
+    };
+
     const handleTouchMove = (e) => {
+      e.preventDefault();
       if (e.touches[0]) {
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
       }
     };
 
     if (dragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("touchmove", handleTouchMove);
+      window.addEventListener("mousemove", handleMouseMove, { passive: false });
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
       window.addEventListener("mouseup", handleEnd);
       window.addEventListener("touchend", handleEnd);
     }
@@ -82,10 +108,14 @@ function Joystick({ onMove }) {
     <div className="joystick-container">
       <div
         className="joystick-base"
-        onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          handleStart(e.clientX, e.clientY, e);
+        }}
         onTouchStart={(e) => {
+          e.preventDefault();
           if (e.touches[0]) {
-            handleStart(e.touches[0].clientX, e.touches[0].clientY);
+            handleStart(e.touches[0].clientX, e.touches[0].clientY, e);
           }
         }}
       >

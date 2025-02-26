@@ -57,7 +57,17 @@ function App() {
           )}
           <div className="controls-container">
             <Joystick onMove={setMovement} />
-            <button className="attack-button" onClick={handleAttack}>
+            <button
+              className="attack-button"
+              onClick={(e) => {
+                e.preventDefault();
+                handleAttack();
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleAttack();
+              }}
+            >
               🎯
             </button>
           </div>
