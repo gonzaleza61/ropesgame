@@ -56,12 +56,12 @@ function App() {
           <div className="controls-container">
             <Joystick onMove={setMovement} />
             <div className="right-controls">
-              <button className="attack-button" onClick={handleAttack}>
-                🎯
-              </button>
               <Joystick onMove={setRotation} />
             </div>
           </div>
+          <button className="attack-button" onClick={handleAttack}>
+            🎯
+          </button>
         </>
       )}
     </div>

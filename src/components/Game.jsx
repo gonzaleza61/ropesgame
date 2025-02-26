@@ -142,9 +142,12 @@ function Game({ character, onWin, movement, rotation, isAttacking }) {
       <group ref={playerRef} position={[0, 1, 0]}>
         {renderCharacterModel()}
 
-        {/* Attack Rope */}
+        {/* Attack Rope - now follows player rotation */}
         {isAttacking && (
-          <mesh position={[0, 0, -ropeLength[character.id] / 2]}>
+          <mesh
+            position={[0, 0, -ropeLength[character.id] / 2]}
+            rotation={[0, playerRef.current?.rotation.y || 0, 0]}
+          >
             <cylinderGeometry
               args={[0.05, 0.05, ropeLength[character.id]]}
               rotation={[Math.PI / 2, 0, 0]}
