@@ -39,6 +39,7 @@ function Joystick({ onMove }) {
         // Apply non-linear response for better control
         const normalizedDistance =
           (clampedDistance - deadZone) / (50 - deadZone);
+        const responseValue = Math.pow(normalizedDistance, 1.5); // Exponential response
 
         // Smoother movement with less aggressive turning
         // Forward/backward movement is more sensitive than turning

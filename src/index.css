@@ -465,8 +465,8 @@ body {
 /* Phone button styles */
 .phone-button-container {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  top: 20px;
+  right: 20px;
   z-index: 1000;
 }
 

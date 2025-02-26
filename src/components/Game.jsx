@@ -580,6 +580,12 @@ function Game({ character, onWin, onPottyReset, movement, isAttacking }) {
           </group>
         </group>
       </group>
+
+      {/* Ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <planeGeometry args={[100, 100]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
     </>
   );
 }
