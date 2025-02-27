@@ -151,6 +151,7 @@ function App() {
               onWin={handleGameWin}
               onPottyReset={handlePottyReset}
               onAlcoholRefill={handleAlcoholRefill}
+              onGameOver={handleGameOver}
               movement={movement}
               isAttacking={isAttacking}
               energyDrinkActive={energyDrinkActive}

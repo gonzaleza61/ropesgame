@@ -15,6 +15,7 @@ function Game({
   onWin,
   onPottyReset,
   onAlcoholRefill,
+  onGameOver,
   movement,
   isAttacking,
   energyDrinkActive,
@@ -943,5 +944,20 @@ function Game({
     </>
   );
 }
+
+// Add these constants
+const PAUL_SPEED = 0.08;
+const PAUL_QUOTES = [
+  "Move out the way, I'm going to be late!",
+  "I got a delivery to make!",
+  "Beep beep! Truck coming through!",
+  "This ain't no Sunday drive!",
+  "You're in my way, partner!",
+  "I got a schedule to keep!",
+  "This truck don't stop for nobody!",
+  "Watch out! Big rig coming through!",
+  "Move it or lose it, buddy!",
+  "I'm hauling important stuff here!",
+];
 
 export default Game;
