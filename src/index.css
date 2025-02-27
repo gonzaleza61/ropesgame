@@ -680,3 +680,110 @@ body {
   background: #f57c00;
   transform: translateY(-2px);
 }
+
+/* Paul's speech bubble */
+.speech-bubble {
+  position: absolute;
+  background: white;
+  border-radius: 10px;
+  padding: 10px 15px;
+  max-width: 200px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -100%);
+  z-index: 1000;
+}
+
+.speech-bubble:after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-top-color: white;
+  border-bottom: 0;
+  margin-left: -10px;
+}
+
+/* Action buttons container */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-right: 20px;
+}
+
+/* Energy drink button styles */
+.energy-drink-button-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.energy-drink-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+}
+
+.energy-drink-button.active {
+  background: #4caf50;
+  animation: pulse 0.5s infinite alternate;
+}
+
+.energy-drink-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.energy-cooldown {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.energy-cooldown-progress {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  animation: energy-cooldown 30s linear forwards;
+  transform-origin: bottom;
+}
+
+@keyframes energy-cooldown {
+  0% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+  }
+  100% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.9);
+  }
+}

@@ -8,6 +8,7 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [gameWon, setGameWon] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [gameOverReason, setGameOverReason] = useState("potty");
   const [movement, setMovement] = useState({ x: 0, z: 0 });
   const [isAttacking, setIsAttacking] = useState(false);
   const [pottyTimer, setPottyTimer] = useState(null);
@@ -17,6 +18,8 @@ function App() {
   const [alcoholTimer, setAlcoholTimer] = useState(null);
   const [alcoholTimerMax, setAlcoholTimerMax] = useState(45); // 45 seconds of alcohol effect
   const [isSober, setIsSober] = useState(false);
+  const [energyDrinkActive, setEnergyDrinkActive] = useState(false);
+  const [energyDrinkCooldown, setEnergyDrinkCooldown] = useState(false);
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -41,8 +44,9 @@ function App() {
     setGameWon(true);
   };
 
-  const handleGameOver = () => {
+  const handleGameOver = (reason = "potty") => {
     setGameOver(true);
+    setGameOverReason(reason);
   };
 
   const handleRestart = () => {
@@ -79,6 +83,26 @@ function App() {
 
   const handleSober = () => {
     setIsSober(true);
+  };
+
+  const handleEnergyDrink = () => {
+    if (!energyDrinkActive && !energyDrinkCooldown) {
+      // Activate energy drink
+      setEnergyDrinkActive(true);
+
+      // Set cooldown
+      setEnergyDrinkCooldown(true);
+
+      // Energy drink effect lasts for 5 seconds
+      setTimeout(() => {
+        setEnergyDrinkActive(false);
+      }, 5000);
+
+      // Cooldown lasts for 30 seconds
+      setTimeout(() => {
+        setEnergyDrinkCooldown(false);
+      }, 30000);
+    }
   };
 
   // Update potty timer
@@ -129,6 +153,7 @@ function App() {
               onAlcoholRefill={handleAlcoholRefill}
               movement={movement}
               isAttacking={isAttacking}
+              energyDrinkActive={energyDrinkActive}
             />
           </Canvas>
 
@@ -182,8 +207,17 @@ function App() {
 
           {gameOver && (
             <div className="game-over-screen">
-              <h2>You pooped yourself!</h2>
-              <p>Find a porta-potty next time!</p>
+              {gameOverReason === "potty" ? (
+                <>
+                  <h2>You pooped yourself!</h2>
+                  <p>Find a porta-potty next time!</p>
+                </>
+              ) : (
+                <>
+                  <h2>Paul ran you over!</h2>
+                  <p>Watch out for that truck next time!</p>
+                </>
+              )}
               <button onClick={handleRestart}>Try Again</button>
             </div>
           )}
@@ -198,26 +232,53 @@ function App() {
 
           <div className="controls-container">
             <Joystick onMove={setMovement} />
-            <div className="attack-button-container">
-              {showRopeCooldown && (
-                <div className="rope-cooldown">
-                  <div className="rope-cooldown-progress"></div>
-                </div>
-              )}
-              <button
-                className="attack-button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleAttack();
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  handleAttack();
-                }}
-              >
-                🎯
-              </button>
+            <div className="action-buttons">
+              <div className="attack-button-container">
+                {showRopeCooldown && (
+                  <div className="rope-cooldown">
+                    <div className="rope-cooldown-progress"></div>
+                  </div>
+                )}
+                <button
+                  className="attack-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleAttack();
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleAttack();
+                  }}
+                >
+                  🎯
+                </button>
+              </div>
+
+              <div className="energy-drink-button-container">
+                {energyDrinkCooldown && (
+                  <div className="energy-cooldown">
+                    <div className="energy-cooldown-progress"></div>
+                  </div>
+                )}
+                <button
+                  className={`energy-drink-button ${
+                    energyDrinkActive ? "active" : ""
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleEnergyDrink();
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleEnergyDrink();
+                  }}
+                  disabled={energyDrinkCooldown}
+                >
+                  ⚡
+                </button>
+              </div>
             </div>
+
             <div className="phone-button-container">
               <button className="phone-button" onClick={() => togglePhone()}>
                 📱

@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Vector3, Raycaster, MeshBasicMaterial, CylinderGeometry } from "three";
+import {
+  Vector3,
+  Raycaster,
+  MeshBasicMaterial,
+  CylinderGeometry,
+  Euler,
+} from "three";
 import Joystick from "./Joystick";
-import { Text, Sky, Stars } from "@react-three/drei";
+import { Text, Sky } from "@react-three/drei";
 
 function Game({
   character,
@@ -11,6 +17,7 @@ function Game({
   onAlcoholRefill,
   movement,
   isAttacking,
+  energyDrinkActive,
 }) {
   const playerRef = useRef();
   const vanRef = useRef();
@@ -30,10 +37,15 @@ function Game({
   const [ropeProjectile, setRopeProjectile] = useState(null);
   const [ropeProjectileDirection, setRopeProjectileDirection] = useState(null);
   const [ropeProjectileDistance, setRopeProjectileDistance] = useState(0);
-  const [otherPlayers] = useState([
-    { id: 1, name: "Player 1", position: [5, 1, -5], color: "#FF5722" },
-    { id: 2, name: "Player 2", position: [-5, 1, -8], color: "#4CAF50" },
-  ]);
+  const [paulPosition, setPaulPosition] = useState(new Vector3(15, 0, -8));
+  const [paulDirection, setPaulDirection] = useState(new Vector3(0, 0, 1));
+  const [paulRotation, setPaulRotation] = useState(
+    new Euler(0, -Math.PI / 4, 0)
+  );
+  const [paulQuote, setPaulQuote] = useState("");
+  const [showPaulQuote, setShowPaulQuote] = useState(false);
+  const paulRef = useRef();
+  const paulChangeDirectionTimer = useRef(0);
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -66,6 +78,24 @@ function Game({
     () => new MeshBasicMaterial({ color: "#555555" }),
     []
   );
+
+  // Add this function to customize character appearance based on selected character
+  const getCharacterColors = () => {
+    const colors = {
+      body: character.color,
+      hat: "#FFD700", // Default gold hat
+    };
+
+    // Customize Rica's hat to be gray
+    if (character.id === "rica") {
+      colors.hat = "#95a5a6"; // Gray hat for Rica
+    }
+
+    return colors;
+  };
+
+  // Use this in the player character rendering
+  const characterColors = getCharacterColors();
 
   // Set initial player position and rotation
   useEffect(() => {
@@ -133,6 +163,80 @@ function Game({
     }
   };
 
+  // Add this function to handle Paul's movement
+  const updatePaulMovement = useCallback(
+    (delta) => {
+      if (!paulRef.current) return;
+
+      // Update direction change timer
+      paulChangeDirectionTimer.current += delta;
+
+      // Change direction randomly every 3-6 seconds
+      if (paulChangeDirectionTimer.current > 3 + Math.random() * 3) {
+        paulChangeDirectionTimer.current = 0;
+
+        // Generate a new random direction
+        const angle = Math.random() * Math.PI * 2;
+        const newDirection = new Vector3(Math.sin(angle), 0, Math.cos(angle));
+        setPaulDirection(newDirection);
+
+        // Update rotation to match direction
+        const newRotation = new Euler(0, angle, 0);
+        setPaulRotation(newRotation);
+
+        // Show a random quote
+        const randomQuote =
+          PAUL_QUOTES[Math.floor(Math.random() * PAUL_QUOTES.length)];
+        setPaulQuote(randomQuote);
+        setShowPaulQuote(true);
+
+        // Hide quote after 2 seconds
+        setTimeout(() => {
+          setShowPaulQuote(false);
+        }, 2000);
+      }
+
+      // Move Paul in the current direction
+      const newPosition = new Vector3().copy(paulPosition);
+      newPosition.x += paulDirection.x * PAUL_SPEED;
+      newPosition.z += paulDirection.z * PAUL_SPEED;
+
+      // Keep Paul within bounds
+      const BOUND = 40;
+      if (Math.abs(newPosition.x) > BOUND) {
+        paulDirection.x *= -1;
+        newPosition.x = paulPosition.x + paulDirection.x * PAUL_SPEED;
+      }
+      if (Math.abs(newPosition.z) > BOUND) {
+        paulDirection.z *= -1;
+        newPosition.z = paulPosition.z + paulDirection.z * PAUL_SPEED;
+      }
+
+      setPaulPosition(newPosition);
+    },
+    [paulPosition, paulDirection]
+  );
+
+  // Add this function to check for collision with Paul's truck
+  const checkPaulCollision = useCallback(() => {
+    if (!playerRef.current || !paulRef.current) return;
+
+    const playerPos = playerRef.current.position;
+    const truckPos = paulPosition;
+
+    // Calculate distance (accounting for truck size)
+    const distance = Math.sqrt(
+      Math.pow(playerPos.x - truckPos.x, 2) +
+        Math.pow(playerPos.z - truckPos.z, 2)
+    );
+
+    // If player is too close to the truck, game over
+    if (distance < 4) {
+      // Game over - hit by truck
+      onGameOver("truck");
+    }
+  }, [playerRef, paulPosition, onGameOver]);
+
   useFrame((state, delta) => {
     if (playerRef.current) {
       // Rope hit detection
@@ -184,7 +288,8 @@ function Game({
         }
       } else if (movement.x !== 0 || movement.z !== 0) {
         // Normal movement when not grappling
-        const moveSpeed = 0.08;
+        const baseSpeed = 0.08;
+        const moveSpeed = energyDrinkActive ? baseSpeed * 2 : baseSpeed; // Double speed when energy drink is active
 
         // Fix controls - don't invert
         playerRef.current.position.x += movement.x * moveSpeed;
@@ -283,6 +388,12 @@ function Game({
           setRopeProjectile(null);
         }
       }
+
+      // Update Paul's movement
+      updatePaulMovement(delta);
+
+      // Check for collision with Paul's truck
+      checkPaulCollision();
     }
   });
 
@@ -295,18 +406,21 @@ function Game({
             {/* Slim Body */}
             <mesh position={[0, 0, 0]}>
               <boxGeometry args={[0.6, 0.8, 0.4]} />
-              <meshStandardMaterial color="#FFE4E1" />{" "}
-              {/* White-ish skin tone */}
+              <meshStandardMaterial color={characterColors.body} />
             </mesh>
             {/* Head */}
             <mesh position={[0, 0.6, 0]}>
               <sphereGeometry args={[0.2]} />
               <meshStandardMaterial color="#FFE4E1" />
             </mesh>
-            {/* Gold Hat */}
+            {/* Hat */}
             <mesh position={[0, 0.85, 0]}>
               <cylinderGeometry args={[0.25, 0.25, 0.2]} />
-              <meshStandardMaterial color="#FFD700" /> {/* Gold color */}
+              <meshStandardMaterial
+                color={characterColors.hat}
+                metalness={0.8}
+                roughness={0.2}
+              />
             </mesh>
             {/* Slim Arms */}
             <mesh position={[-0.35, 0, 0]}>
@@ -357,14 +471,6 @@ function Game({
         sunPosition={[0, 1, 0]}
         inclination={0.6}
         azimuth={0.25}
-      />
-      <Stars
-        radius={100}
-        depth={50}
-        count={5000}
-        factor={4}
-        saturation={0}
-        fade
       />
 
       {/* Background Refinery */}
@@ -626,8 +732,74 @@ function Game({
         </group>
       ))}
 
-      {/* Paul and 18-wheeler truck */}
-      <group position={[15, 0, -8]} rotation={[0, -Math.PI / 4, 0]}>
+      {/* Clutch Bar */}
+      <group position={[barLocation[0], barLocation[1], barLocation[2]]}>
+        {/* Bar building */}
+        <mesh position={[0, 2, 0]}>
+          <boxGeometry args={[6, 4, 5]} />
+          <meshStandardMaterial color="#8B4513" />
+        </mesh>
+
+        {/* Roof */}
+        <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]}>
+          <coneGeometry args={[4.5, 2, 4]} />
+          <meshStandardMaterial color="#A52A2A" />
+        </mesh>
+
+        {/* Door */}
+        <mesh position={[0, 1.5, 2.51]}>
+          <boxGeometry args={[1.5, 3, 0.1]} />
+          <meshStandardMaterial color="#4d2600" />
+        </mesh>
+
+        {/* Windows */}
+        <mesh position={[-2, 2.5, 2.51]}>
+          <boxGeometry args={[1, 1, 0.1]} />
+          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
+        </mesh>
+        <mesh position={[2, 2.5, 2.51]}>
+          <boxGeometry args={[1, 1, 0.1]} />
+          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
+        </mesh>
+
+        {/* Bar sign */}
+        <group position={[0, 5.5, 0]}>
+          <Text
+            position={[0, 0, 2.6]}
+            fontSize={0.8}
+            color="#FF0000"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.05}
+            outlineColor="#000000"
+          >
+            CLUTCH
+          </Text>
+        </group>
+
+        {/* Neon light around sign */}
+        <mesh position={[0, 5.5, 2.6]}>
+          <torusGeometry args={[1.5, 0.05, 16, 32]} />
+          <meshStandardMaterial
+            color="#FF00FF"
+            emissive="#FF00FF"
+            emissiveIntensity={2}
+          />
+        </mesh>
+      </group>
+
+      {/* Ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <planeGeometry args={[100, 100]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+
+      {/* Paul and his truck */}
+      <group
+        ref={paulRef}
+        position={[paulPosition.x, paulPosition.y, paulPosition.z]}
+        rotation={[paulRotation.x, paulRotation.y, paulRotation.z]}
+      >
         {/* 18-wheeler truck */}
         <group>
           {/* Truck cab */}
@@ -693,7 +865,7 @@ function Game({
         </group>
 
         {/* Paul character */}
-        <group position={[0, 1, 3.5]}>
+        <group position={[0, 3.5, 0]}>
           {/* Body */}
           <mesh position={[0, 0.8, 0]}>
             <boxGeometry args={[0.7, 1.2, 0.4]} />
@@ -746,100 +918,28 @@ function Game({
               Paul
             </Text>
           </group>
+
+          {/* Speech bubble */}
+          {showPaulQuote && (
+            <group position={[0, 3, 0]}>
+              <mesh position={[0, 0, 0]}>
+                <planeGeometry args={[5, 1]} />
+                <meshBasicMaterial color="white" transparent opacity={0.8} />
+              </mesh>
+              <Text
+                position={[0, 0, 0.1]}
+                fontSize={0.2}
+                color="black"
+                anchorX="center"
+                anchorY="middle"
+                maxWidth={4.5}
+              >
+                {paulQuote}
+              </Text>
+            </group>
+          )}
         </group>
       </group>
-
-      {/* Clutch Bar */}
-      <group position={[barLocation[0], barLocation[1], barLocation[2]]}>
-        {/* Bar building */}
-        <mesh position={[0, 2, 0]}>
-          <boxGeometry args={[6, 4, 5]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-
-        {/* Roof */}
-        <mesh position={[0, 4.5, 0]} rotation={[0, 0, 0]}>
-          <coneGeometry args={[4.5, 2, 4]} />
-          <meshStandardMaterial color="#A52A2A" />
-        </mesh>
-
-        {/* Door */}
-        <mesh position={[0, 1.5, 2.51]}>
-          <boxGeometry args={[1.5, 3, 0.1]} />
-          <meshStandardMaterial color="#4d2600" />
-        </mesh>
-
-        {/* Windows */}
-        <mesh position={[-2, 2.5, 2.51]}>
-          <boxGeometry args={[1, 1, 0.1]} />
-          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
-        </mesh>
-        <mesh position={[2, 2.5, 2.51]}>
-          <boxGeometry args={[1, 1, 0.1]} />
-          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
-        </mesh>
-
-        {/* Bar sign */}
-        <group position={[0, 5.5, 0]}>
-          <Text
-            position={[0, 0, 2.6]}
-            fontSize={0.8}
-            color="#FF0000"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.05}
-            outlineColor="#000000"
-          >
-            CLUTCH
-          </Text>
-        </group>
-
-        {/* Neon light around sign */}
-        <mesh position={[0, 5.5, 2.6]}>
-          <torusGeometry args={[1.5, 0.05, 16, 32]} />
-          <meshStandardMaterial
-            color="#FF00FF"
-            emissive="#FF00FF"
-            emissiveIntensity={2}
-          />
-        </mesh>
-      </group>
-
-      {/* Other players */}
-      {otherPlayers.map((player) => (
-        <group key={player.id} position={player.position}>
-          {/* Player body */}
-          <mesh position={[0, 0, 0]}>
-            <boxGeometry args={[0.6, 0.8, 0.4]} />
-            <meshStandardMaterial color={player.color} />
-          </mesh>
-
-          {/* Player head */}
-          <mesh position={[0, 0.6, 0]}>
-            <sphereGeometry args={[0.2]} />
-            <meshStandardMaterial color="#FFE4E1" />
-          </mesh>
-
-          {/* Player name */}
-          <Text
-            position={[0, 1.2, 0]}
-            fontSize={0.2}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor="#000000"
-          >
-            {player.name}
-          </Text>
-        </group>
-      ))}
-
-      {/* Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#2c3e50" />
-      </mesh>
     </>
   );
 }

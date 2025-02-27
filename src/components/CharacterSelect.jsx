@@ -106,7 +106,6 @@ function CharacterSelect({ onSelect }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [rotating, setRotating] = useState(true);
-  const [gameMode, setGameMode] = useState("singleplayer");
 
   useEffect(() => {
     // Auto-rotate characters until one is selected
@@ -223,39 +222,6 @@ function CharacterSelect({ onSelect }) {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="game-mode-selector">
-        <h3>Game Mode</h3>
-        <div className="mode-buttons">
-          <button
-            className={`mode-button ${
-              gameMode === "singleplayer" ? "selected" : ""
-            }`}
-            onClick={() => setGameMode("singleplayer")}
-          >
-            Single Player
-          </button>
-          <button
-            className={`mode-button ${
-              gameMode === "multiplayer" ? "selected" : ""
-            }`}
-            onClick={() => setGameMode("multiplayer")}
-          >
-            Multiplayer
-          </button>
-        </div>
-
-        {gameMode === "multiplayer" && (
-          <div className="multiplayer-options">
-            <p>Join a game with your friends!</p>
-            <div className="room-code">
-              <label>Room Code:</label>
-              <input type="text" placeholder="Enter code or create new room" />
-            </div>
-            <button className="create-room-button">Create Room</button>
-          </div>
-        )}
       </div>
 
       <div className="game-instructions">
