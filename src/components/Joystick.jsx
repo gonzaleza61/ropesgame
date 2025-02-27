@@ -28,7 +28,8 @@ function Joystick({ onMove }) {
         }
 
         // Apply max distance
-        const clampedDistance = Math.min(distance, 50);
+        const maxDistance = 50;
+        const clampedDistance = Math.min(distance, maxDistance);
         const angle = Math.atan2(deltaY, deltaX);
 
         const newX = Math.cos(angle) * clampedDistance;
@@ -38,14 +39,16 @@ function Joystick({ onMove }) {
 
         // Apply non-linear response for better control
         const normalizedDistance =
-          (clampedDistance - deadZone) / (50 - deadZone);
-        const responseValue = Math.pow(normalizedDistance, 1.5); // Exponential response
+          (clampedDistance - deadZone) / (maxDistance - deadZone);
 
-        // Smoother movement with less aggressive turning
+        // Use cubic response curve for more precision at low values and more power at high values
+        const responseValue =
+          Math.pow(normalizedDistance, 2) * normalizedDistance;
+
         // Forward/backward movement is more sensitive than turning
         const moveZ = Math.sin(angle) * responseValue;
 
-        // Apply turn sensitivity to make turning less aggressive
+        // Apply turn sensitivity to make turning less aggressive but more responsive
         const moveX = Math.cos(angle) * responseValue * turnSensitivity;
 
         onMove({ x: moveX, z: moveZ });

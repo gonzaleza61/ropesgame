@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Vector3, Raycaster } from "three";
+import { Vector3, Raycaster, MeshBasicMaterial, CylinderGeometry } from "three";
 import Joystick from "./Joystick";
 import { Text, Sky, Stars } from "@react-three/drei";
 
@@ -27,6 +27,13 @@ function Game({
   const ropeRef = useRef();
   const [alcoholLevel, setAlcoholLevel] = useState(null);
   const [barLocation] = useState([12, 1, -15]); // Position of the bar
+  const [ropeProjectile, setRopeProjectile] = useState(null);
+  const [ropeProjectileDirection, setRopeProjectileDirection] = useState(null);
+  const [ropeProjectileDistance, setRopeProjectileDistance] = useState(0);
+  const [otherPlayers] = useState([
+    { id: 1, name: "Player 1", position: [5, 1, -5], color: "#FF5722" },
+    { id: 2, name: "Player 2", position: [-5, 1, -8], color: "#4CAF50" },
+  ]);
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -41,6 +48,24 @@ function Game({
     rica: 0.2, // Medium speed and range
     kris: 0.3, // Faster but shorter range
   };
+
+  // Create rope projectile materials and geometries
+  const ropeMaterial = useMemo(
+    () => new MeshBasicMaterial({ color: "#8B4513" }),
+    []
+  );
+  const ropeGeometry = useMemo(
+    () => new CylinderGeometry(0.03, 0.03, 1, 8),
+    []
+  );
+  const ropeHeadGeometry = useMemo(
+    () => new CylinderGeometry(0.1, 0, 0.2, 8),
+    []
+  );
+  const ropeHeadMaterial = useMemo(
+    () => new MeshBasicMaterial({ color: "#555555" }),
+    []
+  );
 
   // Set initial player position and rotation
   useEffect(() => {
@@ -86,7 +111,29 @@ function Game({
     return () => clearInterval(interval);
   }, [barLocation, onAlcoholRefill]);
 
-  useFrame((state) => {
+  // Update the handleAttack function to shoot a rope projectile
+  const handleRopeShoot = () => {
+    if (playerRef.current && !ropeProjectile && !ropeCooldown) {
+      const playerPos = playerRef.current.position;
+      const direction = new Vector3(
+        Math.sin(playerRef.current.rotation.y),
+        0,
+        Math.cos(playerRef.current.rotation.y)
+      );
+
+      setRopeProjectile(new Vector3(playerPos.x, playerPos.y, playerPos.z));
+      setRopeProjectileDirection(direction);
+      setRopeProjectileDistance(0);
+      setRopeCooldown(true);
+
+      setTimeout(() => {
+        setRopeCooldown(false);
+        setRopeProjectile(null);
+      }, 1000);
+    }
+  };
+
+  useFrame((state, delta) => {
     if (playerRef.current) {
       // Rope hit detection
       if (isAttacking && !isGrappling && !ropeCooldown) {
@@ -195,6 +242,46 @@ function Game({
             onPottyReset();
           }
         });
+      }
+
+      // Handle rope projectile movement
+      if (ropeProjectile && ropeProjectileDirection) {
+        // Move rope projectile forward
+        const speed = 0.5; // Adjust speed as needed
+        ropeProjectile.x += ropeProjectileDirection.x * speed;
+        ropeProjectile.z += ropeProjectileDirection.z * speed;
+
+        setRopeProjectileDistance((prev) => prev + speed);
+
+        // Check if rope hit something
+        const rayStart = new Vector3(
+          playerRef.current.position.x,
+          playerRef.current.position.y,
+          playerRef.current.position.z
+        );
+
+        raycaster.set(rayStart, ropeProjectileDirection);
+        const intersects = raycaster
+          .intersectObjects(state.scene.children, true)
+          .filter(
+            (hit) =>
+              hit.object.name === "pipe" ||
+              hit.object.name === "grapple-point" ||
+              hit.object.name === "building"
+          );
+
+        if (
+          intersects.length > 0 &&
+          intersects[0].distance <= ropeProjectileDistance
+        ) {
+          handleRopeHit(intersects[0].point);
+          setRopeProjectile(null);
+        }
+
+        // Check if rope has traveled its maximum distance
+        if (ropeProjectileDistance >= ropeLength[character.id]) {
+          setRopeProjectile(null);
+        }
       }
     }
   });
@@ -412,6 +499,56 @@ function Game({
                 <meshStandardMaterial color={character.color} />
               </mesh>
             )}
+          </group>
+        )}
+
+        {/* Rope projectile visualization */}
+        {ropeProjectile && (
+          <group>
+            {/* Rope line */}
+            <mesh
+              position={[
+                playerRef.current.position.x +
+                  (ropeProjectile.x - playerRef.current.position.x) / 2,
+                playerRef.current.position.y,
+                playerRef.current.position.z +
+                  (ropeProjectile.z - playerRef.current.position.z) / 2,
+              ]}
+              rotation={[
+                0,
+                Math.atan2(
+                  ropeProjectile.x - playerRef.current.position.x,
+                  ropeProjectile.z - playerRef.current.position.z
+                ),
+                0,
+              ]}
+              scale={[
+                1,
+                new Vector3(
+                  ropeProjectile.x - playerRef.current.position.x,
+                  0,
+                  ropeProjectile.z - playerRef.current.position.z
+                ).length(),
+                1,
+              ]}
+            >
+              <cylinderGeometry
+                args={[0.03, 0.03, 1, 8]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <meshStandardMaterial color="#8B4513" />
+            </mesh>
+
+            {/* Rope head/hook */}
+            <mesh
+              position={[ropeProjectile.x, ropeProjectile.y, ropeProjectile.z]}
+            >
+              <coneGeometry
+                args={[0.1, 0.2, 8]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <meshStandardMaterial color="#555555" metalness={0.8} />
+            </mesh>
           </group>
         )}
       </group>
@@ -667,6 +804,36 @@ function Game({
           />
         </mesh>
       </group>
+
+      {/* Other players */}
+      {otherPlayers.map((player) => (
+        <group key={player.id} position={player.position}>
+          {/* Player body */}
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[0.6, 0.8, 0.4]} />
+            <meshStandardMaterial color={player.color} />
+          </mesh>
+
+          {/* Player head */}
+          <mesh position={[0, 0.6, 0]}>
+            <sphereGeometry args={[0.2]} />
+            <meshStandardMaterial color="#FFE4E1" />
+          </mesh>
+
+          {/* Player name */}
+          <Text
+            position={[0, 1.2, 0]}
+            fontSize={0.2}
+            color="white"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="#000000"
+          >
+            {player.name}
+          </Text>
+        </group>
+      ))}
 
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
