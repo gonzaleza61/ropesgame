@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import CharacterSelect from "./components/CharacterSelect";
 import Game from "./components/Game";
@@ -16,11 +16,19 @@ function App() {
   const [showRopeCooldown, setShowRopeCooldown] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [alcoholTimer, setAlcoholTimer] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [alcoholTimerMax, setAlcoholTimerMax] = useState(45); // 45 seconds of alcohol effect
   const [isSober, setIsSober] = useState(false);
   const [energyDrinkActive, setEnergyDrinkActive] = useState(false);
   const [energyDrinkCooldown, setEnergyDrinkCooldown] = useState(false);
   const [usingKeyboard, setUsingKeyboard] = useState(false);
+
+  const keysPressedRef = useRef({
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+  });
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -57,24 +65,34 @@ function App() {
     setPottyTimer(null);
   };
 
-  const handleAttack = () => {
+  // Memoize handleAttack
+  const handleAttack = useCallback(() => {
     if (!isAttacking && !showRopeCooldown) {
       setIsAttacking(true);
       setShowRopeCooldown(true);
       setTimeout(() => setIsAttacking(false), 500);
       setTimeout(() => setShowRopeCooldown(false), 1000);
     }
-  };
+  }, [isAttacking, showRopeCooldown]);
 
   const handlePottyReset = () => {
     // Reset the timer when player finds a portapotty
     setPottyTimer(pottyTimerMax);
   };
 
-  const togglePhone = () => {
-    console.log("Toggle phone called, current state:", showPhone);
-    setShowPhone(!showPhone);
-  };
+  // Also memoize handleEnergyDrink and togglePhone
+  const handleEnergyDrink = useCallback(() => {
+    if (!energyDrinkActive && !energyDrinkCooldown) {
+      setEnergyDrinkActive(true);
+      setEnergyDrinkCooldown(true);
+      setTimeout(() => setEnergyDrinkActive(false), 5000);
+      setTimeout(() => setEnergyDrinkCooldown(false), 30000);
+    }
+  }, [energyDrinkActive, energyDrinkCooldown]);
+
+  const togglePhone = useCallback(() => {
+    setShowPhone((prev) => !prev);
+  }, []);
 
   const handleAlcoholRefill = () => {
     // Reset the alcohol timer when player visits the bar
@@ -86,43 +104,16 @@ function App() {
     setIsSober(true);
   };
 
-  const handleEnergyDrink = () => {
-    if (!energyDrinkActive && !energyDrinkCooldown) {
-      // Activate energy drink
-      setEnergyDrinkActive(true);
-
-      // Set cooldown
-      setEnergyDrinkCooldown(true);
-
-      // Energy drink effect lasts for 5 seconds
-      setTimeout(() => {
-        setEnergyDrinkActive(false);
-      }, 5000);
-
-      // Cooldown lasts for 30 seconds
-      setTimeout(() => {
-        setEnergyDrinkCooldown(false);
-      }, 30000);
-    }
-  };
-
-  const handleKeyboardControls = () => {
-    // Track which keys are currently pressed
-    const keysPressed = useRef({
-      up: false,
-      down: false,
-      left: false,
-      right: false,
-    });
-
+  // Memoize handleKeyboardControls with useCallback
+  const handleKeyboardControls = useCallback(() => {
     const updateMovement = () => {
       let x = 0;
       let z = 0;
 
-      if (keysPressed.current.up) z = 1;
-      if (keysPressed.current.down) z = -1;
-      if (keysPressed.current.left) x = -1;
-      if (keysPressed.current.right) x = 1;
+      if (keysPressedRef.current.up) z = 1;
+      if (keysPressedRef.current.down) z = -1;
+      if (keysPressedRef.current.left) x = -1;
+      if (keysPressedRef.current.right) x = 1;
 
       // Normalize diagonal movement
       if (x !== 0 && z !== 0) {
@@ -160,19 +151,19 @@ function App() {
       switch (e.key) {
         case "w":
         case "ArrowUp":
-          keysPressed.current.up = true;
+          keysPressedRef.current.up = true;
           break;
         case "s":
         case "ArrowDown":
-          keysPressed.current.down = true;
+          keysPressedRef.current.down = true;
           break;
         case "a":
         case "ArrowLeft":
-          keysPressed.current.left = true;
+          keysPressedRef.current.left = true;
           break;
         case "d":
         case "ArrowRight":
-          keysPressed.current.right = true;
+          keysPressedRef.current.right = true;
           break;
         case " ": // Space bar for grappling hook
           handleAttack();
@@ -195,19 +186,19 @@ function App() {
       switch (e.key) {
         case "w":
         case "ArrowUp":
-          keysPressed.current.up = false;
+          keysPressedRef.current.up = false;
           break;
         case "s":
         case "ArrowDown":
-          keysPressed.current.down = false;
+          keysPressedRef.current.down = false;
           break;
         case "a":
         case "ArrowLeft":
-          keysPressed.current.left = false;
+          keysPressedRef.current.left = false;
           break;
         case "d":
         case "ArrowRight":
-          keysPressed.current.right = false;
+          keysPressedRef.current.right = false;
           break;
         default:
           break;
@@ -227,7 +218,7 @@ function App() {
       // Reset movement when controls are removed
       setMovement({ x: 0, z: 0 });
     };
-  };
+  }, [handleAttack, handleEnergyDrink, togglePhone]);
 
   // Update potty timer
   useEffect(() => {
@@ -263,12 +254,12 @@ function App() {
     }
   }, [alcoholTimer, gameWon, gameOver, isSober]);
 
-  // Add this useEffect to set up keyboard controls
+  // Then update your useEffect
   useEffect(() => {
     if (selectedCharacter && !gameWon && !gameOver && !isSober) {
       return handleKeyboardControls();
     }
-  }, [selectedCharacter, gameWon, gameOver, isSober]);
+  }, [selectedCharacter, gameWon, gameOver, isSober, handleKeyboardControls]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
@@ -356,7 +347,7 @@ function App() {
 
           {isSober && (
             <div className="game-over-screen sober-screen">
-              <h2>You're Sober! You Lose!</h2>
+              <h2>You&apos;re Sober! You Lose!</h2>
               <p>Get back to the bar for another drink!</p>
               <button onClick={handleRestart}>Try Again</button>
             </div>
