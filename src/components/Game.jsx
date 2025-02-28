@@ -268,7 +268,7 @@ function Game({
         }
       }
 
-      // Grappling movement
+      // Handle movement
       if (isGrappling && grapplePoint) {
         const playerPos = playerRef.current.position;
         const grappleDir = new Vector3()
@@ -294,15 +294,32 @@ function Game({
         const baseSpeed = 0.08;
         const moveSpeed = energyDrinkActive ? baseSpeed * 2 : baseSpeed;
 
-        // Calculate movement direction
-        const angle = Math.atan2(movement.x, movement.z);
+        // Get camera direction
+        const cameraDirection = new Vector3(0, 0, 1)
+          .applyQuaternion(state.camera.quaternion)
+          .normalize();
+        cameraDirection.y = 0; // Keep movement on the horizontal plane
 
-        // Update player position
-        playerRef.current.position.x += Math.sin(angle) * moveSpeed;
-        playerRef.current.position.z += Math.cos(angle) * moveSpeed;
+        // Get camera right vector
+        const cameraRight = new Vector3(1, 0, 0)
+          .applyQuaternion(state.camera.quaternion)
+          .normalize();
+
+        // Calculate movement direction based on camera orientation
+        const moveDirection = new Vector3(0, 0, 0);
+        moveDirection.addScaledVector(cameraRight, movement.x);
+        moveDirection.addScaledVector(cameraDirection, movement.z);
+        moveDirection.normalize();
+
+        // Apply movement
+        playerRef.current.position.x += moveDirection.x * moveSpeed;
+        playerRef.current.position.z += moveDirection.z * moveSpeed;
 
         // Update player rotation to face movement direction
-        playerRef.current.rotation.y = angle;
+        if (moveDirection.length() > 0.1) {
+          const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
+          playerRef.current.rotation.y = targetRotation;
+        }
       }
 
       // Fix camera to follow behind player in the direction they're facing

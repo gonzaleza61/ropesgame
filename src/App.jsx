@@ -123,16 +123,8 @@ function App() {
         z /= magnitude;
       }
 
-      // Adjust movement based on player rotation
-      if (x !== 0 || z !== 0) {
-        const adjustedX =
-          x * Math.cos(playerRotation) - z * Math.sin(playerRotation);
-        const adjustedZ =
-          x * Math.sin(playerRotation) + z * Math.cos(playerRotation);
-        setMovement({ x: adjustedX, z: adjustedZ });
-      } else {
-        setMovement({ x: 0, z: 0 });
-      }
+      // Set movement directly without rotation adjustment
+      setMovement({ x, z });
     };
 
     const handleKeyDown = (e) => {
@@ -277,25 +269,10 @@ function App() {
   }, []);
 
   // Update the Joystick component to adjust for player rotation
-  const handleJoystickMove = useCallback(
-    (joystickMovement) => {
-      if (joystickMovement.x === 0 && joystickMovement.z === 0) {
-        setMovement({ x: 0, z: 0 });
-        return;
-      }
-
-      // Adjust joystick movement based on player rotation
-      const adjustedX =
-        joystickMovement.x * Math.cos(playerRotation) -
-        joystickMovement.z * Math.sin(playerRotation);
-      const adjustedZ =
-        joystickMovement.x * Math.sin(playerRotation) +
-        joystickMovement.z * Math.cos(playerRotation);
-
-      setMovement({ x: adjustedX, z: adjustedZ });
-    },
-    [playerRotation]
-  );
+  const handleJoystickMove = useCallback((joystickMovement) => {
+    // Pass joystick input directly without rotation adjustment
+    setMovement(joystickMovement);
+  }, []);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
