@@ -20,6 +20,7 @@ function App() {
   const [isSober, setIsSober] = useState(false);
   const [energyDrinkActive, setEnergyDrinkActive] = useState(false);
   const [energyDrinkCooldown, setEnergyDrinkCooldown] = useState(false);
+  const [usingKeyboard, setUsingKeyboard] = useState(false);
 
   const handleCharacterSelect = (character) => {
     setSelectedCharacter(character);
@@ -105,6 +106,73 @@ function App() {
     }
   };
 
+  const handleKeyboardControls = () => {
+    const handleKeyDown = (e) => {
+      setUsingKeyboard(true);
+
+      // Movement controls
+      switch (e.key) {
+        case "w":
+        case "ArrowUp":
+          setMovement((prev) => ({ ...prev, z: 1 }));
+          break;
+        case "s":
+        case "ArrowDown":
+          setMovement((prev) => ({ ...prev, z: -1 }));
+          break;
+        case "a":
+        case "ArrowLeft":
+          setMovement((prev) => ({ ...prev, x: -1 }));
+          break;
+        case "d":
+        case "ArrowRight":
+          setMovement((prev) => ({ ...prev, x: 1 }));
+          break;
+        case " ": // Space bar for grappling hook
+          handleAttack();
+          break;
+        case "e": // E key for energy drink
+          handleEnergyDrink();
+          break;
+        case "p": // P key for phone
+          togglePhone();
+          break;
+        default:
+          break;
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      // Reset movement when keys are released
+      switch (e.key) {
+        case "w":
+        case "ArrowUp":
+        case "s":
+        case "ArrowDown":
+          setMovement((prev) => ({ ...prev, z: 0 }));
+          break;
+        case "a":
+        case "ArrowLeft":
+        case "d":
+        case "ArrowRight":
+          setMovement((prev) => ({ ...prev, x: 0 }));
+          break;
+        default:
+          break;
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  };
+
   // Update potty timer
   useEffect(() => {
     if (pottyTimer && !gameWon && !gameOver) {
@@ -138,6 +206,13 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [alcoholTimer, gameWon, gameOver, isSober]);
+
+  // Add this useEffect to set up keyboard controls
+  useEffect(() => {
+    if (selectedCharacter && !gameWon && !gameOver && !isSober) {
+      return handleKeyboardControls();
+    }
+  }, [selectedCharacter, gameWon, gameOver, isSober]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
@@ -305,6 +380,32 @@ function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Add a desktop controls help overlay */}
+          {selectedCharacter && !usingKeyboard && (
+            <div className="desktop-controls-help">
+              <h3>Keyboard Controls:</h3>
+              <ul>
+                <li>
+                  <span className="key">W</span> <span className="key">A</span>{" "}
+                  <span className="key">S</span> <span className="key">D</span>{" "}
+                  or <span className="key">↑</span>{" "}
+                  <span className="key">←</span> <span className="key">↓</span>{" "}
+                  <span className="key">→</span> - Move
+                </li>
+                <li>
+                  <span className="key">Space</span> - Grappling Hook
+                </li>
+                <li>
+                  <span className="key">E</span> - Energy Drink
+                </li>
+                <li>
+                  <span className="key">P</span> - Phone
+                </li>
+              </ul>
+              <button onClick={() => setUsingKeyboard(true)}>Got it!</button>
             </div>
           )}
         </>
