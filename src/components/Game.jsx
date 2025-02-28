@@ -290,13 +290,16 @@ function Game({
       } else if (movement.x !== 0 || movement.z !== 0) {
         // Normal movement when not grappling
         const baseSpeed = 0.08;
-        const moveSpeed = energyDrinkActive ? baseSpeed * 2 : baseSpeed; // Double speed when energy drink is active
+        const moveSpeed = energyDrinkActive ? baseSpeed * 2 : baseSpeed;
 
-        // Fix controls - don't invert
-        playerRef.current.position.x += movement.x * moveSpeed;
-        playerRef.current.position.z += movement.z * moveSpeed;
-
+        // Calculate movement direction
         const angle = Math.atan2(movement.x, movement.z);
+
+        // Update player position
+        playerRef.current.position.x += Math.sin(angle) * moveSpeed;
+        playerRef.current.position.z += Math.cos(angle) * moveSpeed;
+
+        // Update player rotation to face movement direction
         playerRef.current.rotation.y = angle;
       }
 

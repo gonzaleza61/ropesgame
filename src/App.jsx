@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import CharacterSelect from "./components/CharacterSelect";
 import Game from "./components/Game";
@@ -107,26 +107,72 @@ function App() {
   };
 
   const handleKeyboardControls = () => {
+    // Track which keys are currently pressed
+    const keysPressed = useRef({
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+    });
+
+    const updateMovement = () => {
+      let x = 0;
+      let z = 0;
+
+      if (keysPressed.current.up) z = 1;
+      if (keysPressed.current.down) z = -1;
+      if (keysPressed.current.left) x = -1;
+      if (keysPressed.current.right) x = 1;
+
+      // Normalize diagonal movement
+      if (x !== 0 && z !== 0) {
+        const magnitude = Math.sqrt(x * x + z * z);
+        x /= magnitude;
+        z /= magnitude;
+      }
+
+      setMovement({ x, z });
+    };
+
     const handleKeyDown = (e) => {
       setUsingKeyboard(true);
+
+      // Prevent default for game controls
+      if (
+        [
+          "w",
+          "s",
+          "a",
+          "d",
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          " ",
+          "e",
+          "p",
+        ].includes(e.key)
+      ) {
+        e.preventDefault();
+      }
 
       // Movement controls
       switch (e.key) {
         case "w":
         case "ArrowUp":
-          setMovement((prev) => ({ ...prev, z: 1 }));
+          keysPressed.current.up = true;
           break;
         case "s":
         case "ArrowDown":
-          setMovement((prev) => ({ ...prev, z: -1 }));
+          keysPressed.current.down = true;
           break;
         case "a":
         case "ArrowLeft":
-          setMovement((prev) => ({ ...prev, x: -1 }));
+          keysPressed.current.left = true;
           break;
         case "d":
         case "ArrowRight":
-          setMovement((prev) => ({ ...prev, x: 1 }));
+          keysPressed.current.right = true;
           break;
         case " ": // Space bar for grappling hook
           handleAttack();
@@ -140,6 +186,8 @@ function App() {
         default:
           break;
       }
+
+      updateMovement();
     };
 
     const handleKeyUp = (e) => {
@@ -147,19 +195,25 @@ function App() {
       switch (e.key) {
         case "w":
         case "ArrowUp":
+          keysPressed.current.up = false;
+          break;
         case "s":
         case "ArrowDown":
-          setMovement((prev) => ({ ...prev, z: 0 }));
+          keysPressed.current.down = false;
           break;
         case "a":
         case "ArrowLeft":
+          keysPressed.current.left = false;
+          break;
         case "d":
         case "ArrowRight":
-          setMovement((prev) => ({ ...prev, x: 0 }));
+          keysPressed.current.right = false;
           break;
         default:
           break;
       }
+
+      updateMovement();
     };
 
     // Add event listeners
@@ -170,6 +224,8 @@ function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      // Reset movement when controls are removed
+      setMovement({ x: 0, z: 0 });
     };
   };
 

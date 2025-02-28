@@ -1,11 +1,23 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 function Joystick({ onMove }) {
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [basePosition, setBasePosition] = useState({ x: 0, y: 0 });
-  const [deadZone, setDeadZone] = useState(5); // Add dead zone for better control
-  const [turnSensitivity, setTurnSensitivity] = useState(0.7); // Reduce turn sensitivity
+  const deadZone = 5; // Dead zone for better control
+  const turnSensitivity = 0.7; // Reduce turn sensitivity
+  const joystickRef = useRef(null);
+  const lastMoveRef = useRef({ x: 0, z: 0 });
+
+  // Reset position when component mounts or unmounts
+  useEffect(() => {
+    setPosition({ x: 0, y: 0 });
+    onMove({ x: 0, z: 0 });
+
+    return () => {
+      onMove({ x: 0, z: 0 });
+    };
+  }, [onMove]);
 
   const handleMove = useCallback(
     (clientX, clientY, e) => {
@@ -23,7 +35,10 @@ function Joystick({ onMove }) {
         // Apply dead zone
         if (distance < deadZone) {
           setPosition({ x: 0, y: 0 });
-          onMove({ x: 0, z: 0 });
+          if (lastMoveRef.current.x !== 0 || lastMoveRef.current.z !== 0) {
+            lastMoveRef.current = { x: 0, z: 0 };
+            onMove({ x: 0, z: 0 });
+          }
           return;
         }
 
@@ -41,32 +56,51 @@ function Joystick({ onMove }) {
         const normalizedDistance =
           (clampedDistance - deadZone) / (maxDistance - deadZone);
 
-        // Use cubic response curve for more precision at low values and more power at high values
-        const responseValue =
-          Math.pow(normalizedDistance, 2) * normalizedDistance;
+        // Use smoother response curve
+        const responseValue = Math.pow(normalizedDistance, 1.5);
 
         // Forward/backward movement is more sensitive than turning
-        const moveZ = Math.sin(angle) * responseValue;
+        const moveZ = -Math.sin(angle) * responseValue; // Invert Z for more intuitive controls
 
         // Apply turn sensitivity to make turning less aggressive but more responsive
         const moveX = Math.cos(angle) * responseValue * turnSensitivity;
 
-        onMove({ x: moveX, z: moveZ });
+        // Only update if values changed significantly
+        if (
+          Math.abs(lastMoveRef.current.x - moveX) > 0.05 ||
+          Math.abs(lastMoveRef.current.z - moveZ) > 0.05
+        ) {
+          lastMoveRef.current = { x: moveX, z: moveZ };
+          onMove({ x: moveX, z: moveZ });
+        }
       }
     },
     [dragging, basePosition, onMove, deadZone, turnSensitivity]
   );
 
-  const handleStart = useCallback((clientX, clientY, e) => {
-    // Prevent default browser behavior
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleStart = useCallback(
+    (clientX, clientY, e) => {
+      // Prevent default browser behavior
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
-    setDragging(true);
-    setBasePosition({ x: clientX, y: clientY });
-  }, []);
+      // Get joystick element position for more accurate base position
+      if (joystickRef.current) {
+        const rect = joystickRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        setDragging(true);
+        setBasePosition({ x: centerX, y: centerY });
+
+        // Immediately move the joystick to the touch position
+        handleMove(clientX, clientY, e);
+      }
+    },
+    [handleMove]
+  );
 
   const handleEnd = useCallback(
     (e) => {
@@ -79,6 +113,7 @@ function Joystick({ onMove }) {
       setDragging(false);
       setPosition({ x: 0, y: 0 });
       setBasePosition({ x: 0, y: 0 });
+      lastMoveRef.current = { x: 0, z: 0 };
       onMove({ x: 0, z: 0 });
     },
     [onMove]
@@ -115,6 +150,7 @@ function Joystick({ onMove }) {
   return (
     <div className="joystick-container">
       <div
+        ref={joystickRef}
         className="joystick-base"
         onMouseDown={(e) => {
           e.preventDefault();
