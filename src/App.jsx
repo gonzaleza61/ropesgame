@@ -22,6 +22,7 @@ function App() {
   const [energyDrinkActive, setEnergyDrinkActive] = useState(false);
   const [energyDrinkCooldown, setEnergyDrinkCooldown] = useState(false);
   const [usingKeyboard, setUsingKeyboard] = useState(false);
+  const [playerRotation, setPlayerRotation] = useState(0);
 
   const keysPressedRef = useRef({
     up: false,
@@ -122,7 +123,16 @@ function App() {
         z /= magnitude;
       }
 
-      setMovement({ x, z });
+      // Adjust movement based on player rotation
+      if (x !== 0 || z !== 0) {
+        const adjustedX =
+          x * Math.cos(playerRotation) - z * Math.sin(playerRotation);
+        const adjustedZ =
+          x * Math.sin(playerRotation) + z * Math.cos(playerRotation);
+        setMovement({ x: adjustedX, z: adjustedZ });
+      } else {
+        setMovement({ x: 0, z: 0 });
+      }
     };
 
     const handleKeyDown = (e) => {
@@ -261,6 +271,32 @@ function App() {
     }
   }, [selectedCharacter, gameWon, gameOver, isSober, handleKeyboardControls]);
 
+  // Add a handler for rotation changes
+  const handleRotationChange = useCallback((rotation) => {
+    setPlayerRotation(rotation);
+  }, []);
+
+  // Update the Joystick component to adjust for player rotation
+  const handleJoystickMove = useCallback(
+    (joystickMovement) => {
+      if (joystickMovement.x === 0 && joystickMovement.z === 0) {
+        setMovement({ x: 0, z: 0 });
+        return;
+      }
+
+      // Adjust joystick movement based on player rotation
+      const adjustedX =
+        joystickMovement.x * Math.cos(playerRotation) -
+        joystickMovement.z * Math.sin(playerRotation);
+      const adjustedZ =
+        joystickMovement.x * Math.sin(playerRotation) +
+        joystickMovement.z * Math.cos(playerRotation);
+
+      setMovement({ x: adjustedX, z: adjustedZ });
+    },
+    [playerRotation]
+  );
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       {!selectedCharacter ? (
@@ -274,6 +310,7 @@ function App() {
               onPottyReset={handlePottyReset}
               onAlcoholRefill={handleAlcoholRefill}
               onGameOver={handleGameOver}
+              onRotationChange={handleRotationChange}
               movement={movement}
               isAttacking={isAttacking}
               energyDrinkActive={energyDrinkActive}
@@ -354,7 +391,7 @@ function App() {
           )}
 
           <div className="controls-container">
-            <Joystick onMove={setMovement} />
+            <Joystick onMove={handleJoystickMove} />
             <div className="action-buttons">
               <div className="attack-button-container">
                 {showRopeCooldown && (

@@ -19,6 +19,7 @@ function Game({
   movement,
   isAttacking,
   energyDrinkActive,
+  onRotationChange,
 }) {
   const playerRef = useRef();
   const vanRef = useRef();
@@ -47,6 +48,7 @@ function Game({
   const [showPaulQuote, setShowPaulQuote] = useState(false);
   const paulRef = useRef();
   const paulChangeDirectionTimer = useRef(0);
+  const [playerRotation, setPlayerRotation] = useState(0);
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -398,6 +400,9 @@ function Game({
 
       // Check for collision with Paul's truck
       checkPaulCollision();
+
+      // Update player rotation state to be used for controls
+      setPlayerRotation(playerRef.current.rotation.y);
     }
   });
 
@@ -944,6 +949,15 @@ function Game({
           )}
         </group>
       </group>
+
+      {/* Add an invisible component to pass rotation data */}
+      <group
+        onUpdate={() => {
+          if (playerRef.current) {
+            onRotationChange(playerRef.current.rotation.y);
+          }
+        }}
+      />
     </>
   );
 }
