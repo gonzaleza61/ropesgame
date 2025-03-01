@@ -687,40 +687,66 @@ function Game({
         )}
       </group>
 
-      {/* Van - moved in front of starting position */}
-      <group ref={vanRef} position={[0, 1, -15]} rotation={[0, Math.PI, 0]}>
+      {/* Van (goal) */}
+      <group
+        ref={vanRef}
+        position={[0, 1, -50]} // Move the van further away to the end of the obstacle course
+        rotation={[0, Math.PI, 0]} // Make the van face the player
+      >
         {/* Van body */}
-        <mesh position={[0, 0.5, 0]}>
-          <boxGeometry args={[2, 1.5, 4]} />
-          <meshStandardMaterial color="white" />
+        <mesh position={[0, 1, 0]}>
+          <boxGeometry args={[2.5, 2, 5]} />
+          <meshStandardMaterial color="#FFFFFF" />
         </mesh>
-        {/* Van cabin - adjusted position and added depth bias */}
-        <mesh position={[0, 0.75, 1.5]} renderOrder={1}>
-          <boxGeometry args={[2, 1, 1]} />
-          <meshStandardMaterial
-            color="lightblue"
-            transparent
-            opacity={0.8}
-            depthWrite={false}
-            polygonOffset={true}
-            polygonOffsetFactor={-1}
-          />
+
+        {/* Van roof */}
+        <mesh position={[0, 2.5, -0.5]}>
+          <boxGeometry args={[2.5, 1, 4]} />
+          <meshStandardMaterial color="#FFFFFF" />
         </mesh>
-        {/* Wheels */}
-        {[
-          [-0.8, -0.5, -1],
-          [0.8, -0.5, -1],
-          [-0.8, -0.5, 1],
-          [0.8, -0.5, 1],
-        ].map((pos, i) => (
-          <mesh key={i} position={pos}>
-            <cylinderGeometry
-              args={[0.3, 0.3, 0.2, 16]}
-              rotation={[Math.PI / 2, 0, 0]}
-            />
-            <meshStandardMaterial color="black" />
-          </mesh>
-        ))}
+
+        {/* Van windshield */}
+        <mesh position={[0, 1.8, 2.01]}>
+          <planeGeometry args={[2, 1.2]} />
+          <meshStandardMaterial color="#87CEEB" transparent opacity={0.7} />
+        </mesh>
+
+        {/* Van wheels */}
+        <mesh position={[-1.25, 0.4, 1.5]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+        <mesh position={[1.25, 0.4, 1.5]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+        <mesh position={[-1.25, 0.4, -1.5]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+        <mesh position={[1.25, 0.4, -1.5]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+
+        {/* Van details */}
+        <mesh position={[0, 0.5, -2.51]}>
+          <planeGeometry args={[2, 1]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+
+        {/* Van logo */}
+        <group position={[0, 1.5, -2.52]}>
+          <Text
+            position={[0, 0, 0]}
+            fontSize={0.3}
+            color="red"
+            anchorX="center"
+            anchorY="middle"
+          >
+            CLUTCH
+          </Text>
+        </group>
       </group>
 
       {/* Porta-potties */}
@@ -816,11 +842,41 @@ function Game({
         </mesh>
       </group>
 
-      {/* Ground */}
+      {/* Ground with texture */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#2c3e50" />
+        <planeGeometry args={[100, 100, 20, 20]} />
+        <meshStandardMaterial
+          color="#2c3e50"
+          roughness={0.8}
+          metalness={0.2}
+          wireframe={false}
+        />
       </mesh>
+
+      {/* Add some random rocks on the ground */}
+      {[...Array(30)].map((_, i) => (
+        <mesh
+          key={`rock-${i}`}
+          position={[
+            (Math.random() - 0.5) * 80,
+            0.2,
+            (Math.random() - 0.5) * 80,
+          ]}
+          rotation={[
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+          ]}
+          scale={[
+            Math.random() * 0.5 + 0.5,
+            Math.random() * 0.5 + 0.5,
+            Math.random() * 0.5 + 0.5,
+          ]}
+        >
+          <dodecahedronGeometry args={[0.5, 0]} />
+          <meshStandardMaterial color="#555555" roughness={0.9} />
+        </mesh>
+      ))}
 
       {/* Paul and his truck */}
       <group
@@ -977,6 +1033,144 @@ function Game({
           }
         }}
       />
+
+      {/* Obstacle Course Elements */}
+      {/* Large concrete barriers */}
+      {[
+        [5, 0.75, -5],
+        [-5, 0.75, -12],
+        [10, 0.75, -20],
+        [-8, 0.75, -25],
+        [15, 0.75, -30],
+      ].map((pos, i) => (
+        <mesh key={`barrier-${i}`} position={pos} name="obstacle">
+          <boxGeometry args={[3, 1.5, 1]} />
+          <meshStandardMaterial color="#888888" />
+        </mesh>
+      ))}
+
+      {/* Shipping containers */}
+      {[
+        [12, 1.5, -5, 0],
+        [-10, 1.5, -15, Math.PI / 4],
+        [8, 1.5, -25, Math.PI / 6],
+      ].map((pos, i) => (
+        <group
+          key={`container-${i}`}
+          position={[pos[0], pos[1], pos[2]]}
+          rotation={[0, pos[3], 0]}
+        >
+          <mesh>
+            <boxGeometry args={[5, 3, 10]} />
+            <meshStandardMaterial color={i % 2 === 0 ? "#1976D2" : "#D32F2F"} />
+          </mesh>
+          <mesh position={[0, -1.5, 4.5]}>
+            <boxGeometry args={[4.8, 0.2, 0.2]} />
+            <meshStandardMaterial color="#333333" />
+          </mesh>
+          <mesh position={[0, -1.5, -4.5]}>
+            <boxGeometry args={[4.8, 0.2, 0.2]} />
+            <meshStandardMaterial color="#333333" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Construction site with pipes for grappling */}
+      <group position={[0, 0, -35]}>
+        <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} name="pipe">
+          <cylinderGeometry args={[0.2, 0.2, 15, 16]} />
+          <meshStandardMaterial color="#FF9800" />
+        </mesh>
+        <mesh position={[0, 10, 0]} rotation={[0, 0, Math.PI / 2]} name="pipe">
+          <cylinderGeometry args={[0.2, 0.2, 15, 16]} />
+          <meshStandardMaterial color="#FF9800" />
+        </mesh>
+        <mesh position={[-7.5, 7.5, 0]} rotation={[0, 0, 0]} name="pipe">
+          <cylinderGeometry args={[0.2, 0.2, 15, 16]} />
+          <meshStandardMaterial color="#FF9800" />
+        </mesh>
+        <mesh position={[7.5, 7.5, 0]} rotation={[0, 0, 0]} name="pipe">
+          <cylinderGeometry args={[0.2, 0.2, 15, 16]} />
+          <meshStandardMaterial color="#FF9800" />
+        </mesh>
+      </group>
+
+      {/* Mud puddles that slow the player down */}
+      {[
+        [3, 0.05, -8],
+        [-7, 0.05, -18],
+        [5, 0.05, -28],
+      ].map((pos, i) => (
+        <mesh
+          key={`mud-${i}`}
+          position={pos}
+          rotation={[-Math.PI / 2, 0, 0]}
+          name="mud"
+        >
+          <circleGeometry args={[2.5, 32]} />
+          <meshStandardMaterial color="#5D4037" transparent opacity={0.8} />
+        </mesh>
+      ))}
+
+      {/* Ramps and platforms */}
+      <group position={[-15, 0, -35]}>
+        <mesh position={[0, 1, 0]} rotation={[Math.PI / 8, 0, 0]}>
+          <boxGeometry args={[6, 0.5, 8]} />
+          <meshStandardMaterial color="#607D8B" />
+        </mesh>
+        <mesh position={[0, 2.5, -5]}>
+          <boxGeometry args={[6, 0.5, 3]} />
+          <meshStandardMaterial color="#607D8B" />
+        </mesh>
+      </group>
+
+      {/* Barrels */}
+      {[
+        [2, 1, -3],
+        [3, 1, -3.5],
+        [2.5, 1, -2.5],
+        [-6, 1, -22],
+        [-5, 1, -21],
+        [14, 1, -18],
+        [15, 1, -17],
+      ].map((pos, i) => (
+        <mesh key={`barrel-${i}`} position={pos} name="obstacle">
+          <cylinderGeometry args={[0.5, 0.5, 2, 16]} />
+          <meshStandardMaterial color={i % 2 === 0 ? "#F57F17" : "#0D47A1"} />
+        </mesh>
+      ))}
+
+      {/* Fences */}
+      {[...Array(10)].map((_, i) => (
+        <group
+          key={`fence-${i}`}
+          position={[20, 0, -5 * i]}
+          rotation={[0, 0, 0]}
+        >
+          <mesh position={[0, 1, 0]}>
+            <boxGeometry args={[0.2, 2, 5]} />
+            <meshStandardMaterial color="#8D6E63" />
+          </mesh>
+          <mesh position={[0, 0.5, -2.4]}>
+            <boxGeometry args={[0.1, 0.1, 0.2]} />
+            <meshStandardMaterial color="#5D4037" />
+          </mesh>
+          <mesh position={[0, 1.5, -2.4]}>
+            <boxGeometry args={[0.1, 0.1, 0.2]} />
+            <meshStandardMaterial color="#5D4037" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Add a finish line near the van */}
+      <mesh position={[0, 0.05, -45]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[10, 2]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0, 0.06, -45]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[10, 2]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.8} />
+      </mesh>
     </>
   );
 }
