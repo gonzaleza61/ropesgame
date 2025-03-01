@@ -111,10 +111,11 @@ function App() {
       let x = 0;
       let z = 0;
 
-      if (keysPressedRef.current.up) z = 1;
-      if (keysPressedRef.current.down) z = -1;
-      if (keysPressedRef.current.left) x = -1;
-      if (keysPressedRef.current.right) x = 1;
+      // Invert the z-axis for more intuitive controls
+      if (keysPressedRef.current.up) z = 1; // Forward
+      if (keysPressedRef.current.down) z = -1; // Backward
+      if (keysPressedRef.current.left) x = -1; // Left
+      if (keysPressedRef.current.right) x = 1; // Right
 
       // Normalize diagonal movement
       if (x !== 0 && z !== 0) {

@@ -314,9 +314,6 @@ button:focus-visible {
   background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
   pointer-events: none;
   transition: transform 0.05s ease-out;

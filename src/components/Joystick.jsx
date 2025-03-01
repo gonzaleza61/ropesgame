@@ -60,7 +60,8 @@ function Joystick({ onMove }) {
         const responseValue = Math.pow(normalizedDistance, 1.5);
 
         // Forward/backward movement is more sensitive than turning
-        const moveZ = -Math.sin(angle) * responseValue; // Invert Z for more intuitive controls
+        // Invert Z for more intuitive controls (up = forward)
+        const moveZ = -Math.sin(angle) * responseValue;
 
         // Apply turn sensitivity to make turning less aggressive but more responsive
         const moveX = Math.cos(angle) * responseValue * turnSensitivity;
@@ -166,7 +167,11 @@ function Joystick({ onMove }) {
         <div
           className="joystick-stick"
           style={{
-            transform: `translate(${position.x}px, ${position.y}px)`,
+            transform: dragging
+              ? `translate(${position.x}px, ${position.y}px)`
+              : `translate(-50%, -50%)`,
+            left: dragging ? "auto" : "50%",
+            top: dragging ? "auto" : "50%",
           }}
         />
       </div>
