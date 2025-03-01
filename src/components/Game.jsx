@@ -313,28 +313,7 @@ function Game({
 
       // Rope hit detection
       if (isAttacking && !isGrappling && !ropeCooldown) {
-        const playerPos = playerRef.current.position;
-        // Fix rope direction to match player facing direction
-        const direction = new Vector3(
-          Math.sin(playerRef.current.rotation.y),
-          0,
-          Math.cos(playerRef.current.rotation.y)
-        );
-
-        raycaster.set(playerPos, direction);
-        const intersects = raycaster
-          .intersectObjects(state.scene.children, true)
-          .filter(
-            (hit) =>
-              hit.object.name === "pipe" || hit.object.name === "grapple-point"
-          );
-
-        if (
-          intersects.length > 0 &&
-          intersects[0].distance <= ropeLength[character.id]
-        ) {
-          handleRopeHit(intersects[0].point);
-        }
+        handleRopeShoot();
       }
 
       // Handle movement
@@ -529,7 +508,6 @@ function Game({
       }
 
       // After applying movement, check for collisions
-      const playerPos = playerRef.current.position;
       const playerRadius = 0.5; // Approximate player radius
 
       // Check collisions with all obstacles
@@ -551,10 +529,10 @@ function Game({
 
         // Check if player is inside the obstacle bounds plus player radius
         if (
-          playerPos.x > box.min.x - playerRadius &&
-          playerPos.x < box.max.x + playerRadius &&
-          playerPos.z > box.min.z - playerRadius &&
-          playerPos.z < box.max.z + playerRadius
+          playerRef.current.position.x > box.min.x - playerRadius &&
+          playerRef.current.position.x < box.max.x + playerRadius &&
+          playerRef.current.position.z > box.min.z - playerRadius &&
+          playerRef.current.position.z < box.max.z + playerRadius
         ) {
           collision = true;
           break;
