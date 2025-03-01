@@ -49,6 +49,14 @@ function Game({
   const paulRef = useRef();
   const paulChangeDirectionTimer = useRef(0);
   const [playerRotation, setPlayerRotation] = useState(0);
+  const [trampolines] = useState([
+    [-5, 0, -30],
+    [5, 0, -40],
+    [10, 0, -15],
+  ]);
+  const [isJumping, setIsJumping] = useState(false);
+  const jumpHeight = useRef(0);
+  const jumpVelocity = useRef(0);
 
   // Rope lengths for different characters
   const ropeLength = {
@@ -240,8 +248,68 @@ function Game({
     }
   }, [playerRef, paulPosition, onGameOver]);
 
+  // Add state for moving platforms
+  const [movingPlatforms] = useState([
+    { position: [0, 1, -25], direction: 1, range: 5, speed: 0.03 },
+    { position: [-8, 1, -35], direction: 1, range: 3, speed: 0.05 },
+  ]);
+
+  // Add state for collectibles
+  const [collectibles, setCollectibles] = useState([
+    { position: [3, 1, -10], collected: false },
+    { position: [-7, 1, -20], collected: false },
+    { position: [10, 1, -30], collected: false },
+    { position: [0, 1, -40], collected: false },
+  ]);
+  const [score, setScore] = useState(0);
+
+  // Update moving platforms in useFrame
   useFrame((state, delta) => {
+    // Update moving platforms
+    setMovingPlatforms((platforms) =>
+      platforms.map((platform) => {
+        // Calculate new position
+        const newX = platform.position[0] + platform.direction * platform.speed;
+
+        // Check if platform reached its range limit
+        if (Math.abs(newX - platform.position[0]) > platform.range) {
+          return {
+            ...platform,
+            direction: -platform.direction,
+          };
+        }
+
+        // Update position
+        return {
+          ...platform,
+          position: [newX, platform.position[1], platform.position[2]],
+        };
+      })
+    );
+
+    // Check if player is on a moving platform
+    if (playerRef.current && !isJumping) {
+      for (const platform of movingPlatforms) {
+        const distance = Math.sqrt(
+          Math.pow(playerRef.current.position.x - platform.position[0], 2) +
+            Math.pow(playerRef.current.position.z - platform.position[2], 2)
+        );
+
+        // If player is on the platform, move with it
+        if (
+          distance < 2 &&
+          Math.abs(playerRef.current.position.y - platform.position[1] - 1) <
+            0.5
+        ) {
+          playerRef.current.position.x += platform.direction * platform.speed;
+        }
+      }
+    }
+
     if (playerRef.current) {
+      // Store the previous position before movement
+      const prevPosition = playerRef.current.position.clone();
+
       // Rope hit detection
       if (isAttacking && !isGrappling && !ropeCooldown) {
         const playerPos = playerRef.current.position;
@@ -422,6 +490,102 @@ function Game({
 
       // Update player rotation state to be used for controls
       setPlayerRotation(playerRef.current.rotation.y);
+
+      // Check for trampoline collision
+      if (!isJumping) {
+        for (const trampolinePos of trampolines) {
+          const distance = Math.sqrt(
+            Math.pow(playerRef.current.position.x - trampolinePos[0], 2) +
+              Math.pow(playerRef.current.position.z - trampolinePos[2], 2)
+          );
+
+          if (distance < 1.5) {
+            // Start a jump
+            setIsJumping(true);
+            jumpVelocity.current = 0.3;
+            break;
+          }
+        }
+      }
+
+      // Handle jumping physics
+      if (isJumping) {
+        // Apply gravity
+        jumpVelocity.current -= 0.01;
+
+        // Update height
+        jumpHeight.current += jumpVelocity.current;
+
+        // Update player Y position
+        playerRef.current.position.y = 1 + jumpHeight.current;
+
+        // Check if landed
+        if (jumpHeight.current <= 0) {
+          jumpHeight.current = 0;
+          playerRef.current.position.y = 1;
+          setIsJumping(false);
+        }
+      }
+
+      // After applying movement, check for collisions
+      const playerPos = playerRef.current.position;
+      const playerRadius = 0.5; // Approximate player radius
+
+      // Check collisions with all obstacles
+      const obstacles = state.scene.children.filter(
+        (child) => child.name === "obstacle" || child.name === "container"
+      );
+
+      let collision = false;
+
+      for (const obstacle of obstacles) {
+        // Get obstacle bounds
+        const box = new THREE.Box3().setFromObject(obstacle);
+
+        // Simple collision check - if player is too close to obstacle center
+        const obstaclePos = new THREE.Vector3();
+        box.getCenter(obstaclePos);
+
+        const xSize = box.max.x - box.min.x;
+        const zSize = box.max.z - box.min.z;
+
+        // Check if player is inside the obstacle bounds plus player radius
+        if (
+          playerPos.x > box.min.x - playerRadius &&
+          playerPos.x < box.max.x + playerRadius &&
+          playerPos.z > box.min.z - playerRadius &&
+          playerPos.z < box.max.z + playerRadius
+        ) {
+          collision = true;
+          break;
+        }
+      }
+
+      // If collision detected, revert to previous position
+      if (collision) {
+        playerRef.current.position.copy(prevPosition);
+      }
+    }
+
+    // Check for collectible pickup
+    if (playerRef.current) {
+      setCollectibles((items) =>
+        items.map((item) => {
+          if (!item.collected) {
+            const distance = Math.sqrt(
+              Math.pow(playerRef.current.position.x - item.position[0], 2) +
+                Math.pow(playerRef.current.position.z - item.position[2], 2)
+            );
+
+            if (distance < 1) {
+              // Collect the item
+              setScore((prev) => prev + 10);
+              return { ...item, collected: true };
+            }
+          }
+          return item;
+        })
+      );
     }
   });
 
@@ -1171,6 +1335,49 @@ function Game({
         <planeGeometry args={[10, 2]} />
         <meshStandardMaterial color="#000000" transparent opacity={0.8} />
       </mesh>
+
+      {/* Trampolines */}
+      {trampolines.map((pos, i) => (
+        <group key={`trampoline-${i}`} position={[pos[0], pos[1], pos[2]]}>
+          <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[1.5, 32]} />
+            <meshStandardMaterial color="#4CAF50" />
+          </mesh>
+          <mesh position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1.3, 1.5, 32]} />
+            <meshStandardMaterial color="#F44336" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Moving platforms */}
+      {movingPlatforms.map((platform, i) => (
+        <mesh
+          key={`moving-platform-${i}`}
+          position={platform.position}
+          name="obstacle"
+        >
+          <boxGeometry args={[4, 0.5, 2]} />
+          <meshStandardMaterial color="#E91E63" />
+        </mesh>
+      ))}
+
+      {/* Collectibles */}
+      {collectibles.map(
+        (item, i) =>
+          !item.collected && (
+            <group key={`collectible-${i}`} position={item.position}>
+              <mesh rotation={[0, state.clock.elapsedTime, 0]}>
+                <boxGeometry args={[0.5, 0.5, 0.5]} />
+                <meshStandardMaterial
+                  color="#FFD700"
+                  metalness={0.8}
+                  roughness={0.2}
+                />
+              </mesh>
+            </group>
+          )
+      )}
     </>
   );
 }
