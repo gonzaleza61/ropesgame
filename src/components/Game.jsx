@@ -294,29 +294,31 @@ function Game({
         const baseSpeed = 0.08;
         const moveSpeed = energyDrinkActive ? baseSpeed * 2 : baseSpeed;
 
-        // Get camera direction
-        const cameraDirection = new Vector3(0, 0, 1)
-          .applyQuaternion(state.camera.quaternion)
-          .normalize();
-        cameraDirection.y = 0; // Keep movement on the horizontal plane
+        // Get camera forward direction (ignoring y component for horizontal movement)
+        const cameraForward = new Vector3(0, 0, -1); // -Z is forward in camera space
+        cameraForward.applyQuaternion(state.camera.quaternion);
+        cameraForward.y = 0; // Keep movement on horizontal plane
+        cameraForward.normalize();
 
-        // Get camera right vector
-        const cameraRight = new Vector3(1, 0, 0)
-          .applyQuaternion(state.camera.quaternion)
-          .normalize();
+        // Get camera right direction
+        const cameraRight = new Vector3(1, 0, 0); // X is right in camera space
+        cameraRight.applyQuaternion(state.camera.quaternion);
+        cameraRight.y = 0; // Keep movement on horizontal plane
+        cameraRight.normalize();
 
-        // Calculate movement direction based on camera orientation
-        const moveDirection = new Vector3(0, 0, 0);
+        // Calculate movement direction based on input and camera orientation
+        const moveDirection = new Vector3();
         moveDirection.addScaledVector(cameraRight, movement.x);
-        moveDirection.addScaledVector(cameraDirection, movement.z);
-        moveDirection.normalize();
+        moveDirection.addScaledVector(cameraForward, movement.z);
 
-        // Apply movement
-        playerRef.current.position.x += moveDirection.x * moveSpeed;
-        playerRef.current.position.z += moveDirection.z * moveSpeed;
-
-        // Update player rotation to face movement direction
         if (moveDirection.length() > 0.1) {
+          moveDirection.normalize();
+
+          // Apply movement
+          playerRef.current.position.x += moveDirection.x * moveSpeed;
+          playerRef.current.position.z += moveDirection.z * moveSpeed;
+
+          // Update player rotation to face movement direction
           const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
           playerRef.current.rotation.y = targetRotation;
         }
