@@ -264,8 +264,14 @@ function Game({
   ]);
   const [score, setScore] = useState(0);
 
-  // Update moving platforms in useFrame
+  // Add a state for tracking elapsed time
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Update the elapsed time in useFrame
   useFrame((state, delta) => {
+    // Update elapsed time for animations
+    setElapsedTime(state.clock.elapsedTime);
+
     // Update moving platforms
     setMovingPlatforms((platforms) =>
       platforms.map((platform) => {
@@ -1346,7 +1352,7 @@ function Game({
         (item, i) =>
           !item.collected && (
             <group key={`collectible-${i}`} position={item.position}>
-              <mesh rotation={[0, state.clock.elapsedTime, 0]}>
+              <mesh rotation={[0, elapsedTime, 0]}>
                 <boxGeometry args={[0.5, 0.5, 0.5]} />
                 <meshStandardMaterial
                   color="#FFD700"
