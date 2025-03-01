@@ -23,6 +23,7 @@ function App() {
   const [energyDrinkCooldown, setEnergyDrinkCooldown] = useState(false);
   const [usingKeyboard, setUsingKeyboard] = useState(false);
   const [playerRotation, setPlayerRotation] = useState(0);
+  const [score, setScore] = useState(0);
 
   const keysPressedRef = useRef({
     up: false,
@@ -289,6 +290,7 @@ function App() {
               onAlcoholRefill={handleAlcoholRefill}
               onGameOver={handleGameOver}
               onRotationChange={handleRotationChange}
+              onScoreChange={setScore}
               movement={movement}
               isAttacking={isAttacking}
               energyDrinkActive={energyDrinkActive}
@@ -469,6 +471,10 @@ function App() {
               </ul>
               <button onClick={() => setUsingKeyboard(true)}>Got it!</button>
             </div>
+          )}
+
+          {selectedCharacter && !gameWon && !gameOver && !isSober && (
+            <div className="score-display">Score: {score}</div>
           )}
         </>
       )}

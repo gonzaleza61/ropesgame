@@ -6,6 +6,7 @@ import {
   MeshBasicMaterial,
   CylinderGeometry,
   Euler,
+  Box3,
 } from "three";
 import Joystick from "./Joystick";
 import { Text, Sky } from "@react-three/drei";
@@ -50,9 +51,9 @@ function Game({
   const paulChangeDirectionTimer = useRef(0);
   const [playerRotation, setPlayerRotation] = useState(0);
   const [trampolines] = useState([
-    [-5, 0, -30],
-    [5, 0, -40],
-    [10, 0, -15],
+    [-15, 0, -20],
+    [15, 0, -30],
+    [-5, 0, -40],
   ]);
   const [isJumping, setIsJumping] = useState(false);
   const jumpHeight = useRef(0);
@@ -250,16 +251,16 @@ function Game({
 
   // Add state for moving platforms
   const [movingPlatforms] = useState([
-    { position: [0, 1, -25], direction: 1, range: 5, speed: 0.03 },
-    { position: [-8, 1, -35], direction: 1, range: 3, speed: 0.05 },
+    { position: [10, 1, -15], direction: 1, range: 5, speed: 0.03 },
+    { position: [-12, 1, -35], direction: 1, range: 3, speed: 0.05 },
   ]);
 
   // Add state for collectibles
   const [collectibles, setCollectibles] = useState([
-    { position: [3, 1, -10], collected: false },
-    { position: [-7, 1, -20], collected: false },
-    { position: [10, 1, -30], collected: false },
-    { position: [0, 1, -40], collected: false },
+    { position: [13, 1, -10], collected: false },
+    { position: [-17, 1, -20], collected: false },
+    { position: [20, 1, -30], collected: false },
+    { position: [-10, 1, -40], collected: false },
   ]);
   const [score, setScore] = useState(0);
 
@@ -532,22 +533,21 @@ function Game({
       const playerRadius = 0.5; // Approximate player radius
 
       // Check collisions with all obstacles
-      const obstacles = state.scene.children.filter(
-        (child) => child.name === "obstacle" || child.name === "container"
-      );
+      const obstacles = [];
+      state.scene.traverse((child) => {
+        if (
+          child.isMesh &&
+          (child.name === "obstacle" || child.name === "container")
+        ) {
+          obstacles.push(child);
+        }
+      });
 
       let collision = false;
 
       for (const obstacle of obstacles) {
         // Get obstacle bounds
-        const box = new THREE.Box3().setFromObject(obstacle);
-
-        // Simple collision check - if player is too close to obstacle center
-        const obstaclePos = new THREE.Vector3();
-        box.getCenter(obstaclePos);
-
-        const xSize = box.max.x - box.min.x;
-        const zSize = box.max.z - box.min.z;
+        const box = new Box3().setFromObject(obstacle);
 
         // Check if player is inside the obstacle bounds plus player radius
         if (
@@ -1202,10 +1202,10 @@ function Game({
       {/* Large concrete barriers */}
       {[
         [5, 0.75, -5],
-        [-5, 0.75, -12],
-        [10, 0.75, -20],
-        [-8, 0.75, -25],
-        [15, 0.75, -30],
+        [-15, 0.75, -12],
+        [20, 0.75, -20],
+        [-18, 0.75, -25],
+        [25, 0.75, -30],
       ].map((pos, i) => (
         <mesh key={`barrier-${i}`} position={pos} name="obstacle">
           <boxGeometry args={[3, 1.5, 1]} />
@@ -1216,13 +1216,14 @@ function Game({
       {/* Shipping containers */}
       {[
         [12, 1.5, -5, 0],
-        [-10, 1.5, -15, Math.PI / 4],
-        [8, 1.5, -25, Math.PI / 6],
+        [-20, 1.5, -15, Math.PI / 4],
+        [18, 1.5, -25, Math.PI / 6],
       ].map((pos, i) => (
         <group
           key={`container-${i}`}
           position={[pos[0], pos[1], pos[2]]}
           rotation={[0, pos[3], 0]}
+          name="container"
         >
           <mesh>
             <boxGeometry args={[5, 3, 10]} />
