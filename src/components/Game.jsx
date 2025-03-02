@@ -250,7 +250,7 @@ function Game({
   }, [playerRef, paulPosition, onGameOver]);
 
   // Add state for moving platforms
-  const [movingPlatforms] = useState([
+  const [movingPlatforms, setMovingPlatforms] = useState([
     { position: [10, 1, -15], direction: 1, range: 5, speed: 0.03 },
     { position: [-12, 1, -35], direction: 1, range: 3, speed: 0.05 },
   ]);
