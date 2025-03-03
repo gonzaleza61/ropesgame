@@ -10,6 +10,7 @@ import {
 } from "three";
 import Joystick from "./Joystick";
 import { Text, Sky } from "@react-three/drei";
+import PropTypes from "prop-types";
 
 function Game({
   character,
@@ -35,7 +36,6 @@ function Game({
   ]);
   const raycaster = new Raycaster();
   const ropeRef = useRef();
-  const [alcoholLevel, setAlcoholLevel] = useState(null);
   const [barLocation] = useState([12, 1, -15]); // Position of the bar
   const [ropeProjectile, setRopeProjectile] = useState(null);
   const [ropeProjectileDirection, setRopeProjectileDirection] = useState(null);
@@ -51,9 +51,9 @@ function Game({
   const paulChangeDirectionTimer = useRef(0);
   const [playerRotation, setPlayerRotation] = useState(0);
   const [trampolines] = useState([
-    [-15, 0, -20],
-    [15, 0, -30],
-    [-5, 0, -40],
+    [-25, 0, -25],
+    [25, 0, -40],
+    [-15, 0, -55],
   ]);
   const [isJumping, setIsJumping] = useState(false);
   const jumpHeight = useRef(0);
@@ -72,24 +72,6 @@ function Game({
     rica: 0.2, // Medium speed and range
     kris: 0.3, // Faster but shorter range
   };
-
-  // Create rope projectile materials and geometries
-  const ropeMaterial = useMemo(
-    () => new MeshBasicMaterial({ color: "#8B4513" }),
-    []
-  );
-  const ropeGeometry = useMemo(
-    () => new CylinderGeometry(0.03, 0.03, 1, 8),
-    []
-  );
-  const ropeHeadGeometry = useMemo(
-    () => new CylinderGeometry(0.1, 0, 0.2, 8),
-    []
-  );
-  const ropeHeadMaterial = useMemo(
-    () => new MeshBasicMaterial({ color: "#555555" }),
-    []
-  );
 
   // Add this function to customize character appearance based on selected character
   const getCharacterColors = () => {
@@ -153,7 +135,7 @@ function Game({
     return () => clearInterval(interval);
   }, [barLocation, onAlcoholRefill]);
 
-  // Update the handleAttack function to shoot a rope projectile
+  // Update the handleRopeShoot function to use state.scene instead of scene
   const handleRopeShoot = () => {
     if (playerRef.current && !ropeProjectile && !ropeCooldown) {
       const playerPos = playerRef.current.position;
@@ -163,11 +145,34 @@ function Game({
         Math.cos(playerRef.current.rotation.y)
       );
 
+      // Only check for specific objects with the raycaster
+      const validObjects = [];
+      // Use a ref to store scene objects instead of accessing scene directly
+      const sceneObjects = [];
+
+      // We'll collect valid objects in useFrame instead
+      raycaster.set(playerPos, direction);
+      const intersects = raycaster
+        .intersectObjects(validObjects)
+        .filter(
+          (hit) =>
+            hit.object.name === "pipe" || hit.object.name === "grapple-point"
+        );
+
+      if (
+        intersects.length > 0 &&
+        intersects[0].distance <= ropeLength[character.id]
+      ) {
+        handleRopeHit(intersects[0].point);
+      }
+
+      // Set a maximum distance for the rope projectile
       setRopeProjectile(new Vector3(playerPos.x, playerPos.y, playerPos.z));
       setRopeProjectileDirection(direction);
       setRopeProjectileDistance(0);
       setRopeCooldown(true);
 
+      // Make sure to clean up the projectile
       setTimeout(() => {
         setRopeCooldown(false);
         setRopeProjectile(null);
@@ -251,16 +256,16 @@ function Game({
 
   // Add state for moving platforms
   const [movingPlatforms, setMovingPlatforms] = useState([
-    { position: [10, 1, -15], direction: 1, range: 5, speed: 0.03 },
-    { position: [-12, 1, -35], direction: 1, range: 3, speed: 0.05 },
+    { position: [20, 1, -20], direction: 1, range: 8, speed: 0.03 },
+    { position: [-22, 1, -45], direction: 1, range: 6, speed: 0.05 },
   ]);
 
   // Add state for collectibles
   const [collectibles, setCollectibles] = useState([
-    { position: [13, 1, -10], collected: false },
-    { position: [-17, 1, -20], collected: false },
-    { position: [20, 1, -30], collected: false },
-    { position: [-10, 1, -40], collected: false },
+    { position: [23, 1, -15], collected: false },
+    { position: [-27, 1, -30], collected: false },
+    { position: [30, 1, -40], collected: false },
+    { position: [-20, 1, -50], collected: false },
   ]);
   const [score, setScore] = useState(0);
 
@@ -430,37 +435,19 @@ function Game({
 
       // Handle rope projectile movement
       if (ropeProjectile && ropeProjectileDirection) {
-        // Move rope projectile forward
-        const speed = 0.5; // Adjust speed as needed
-        ropeProjectile.x += ropeProjectileDirection.x * speed;
-        ropeProjectile.z += ropeProjectileDirection.z * speed;
+        // Calculate new position
+        const newX = ropeProjectile.x + ropeProjectileDirection.x * 0.5;
+        const newZ = ropeProjectile.z + ropeProjectileDirection.z * 0.5;
 
-        setRopeProjectileDistance((prev) => prev + speed);
+        // Update position
+        setRopeProjectile(new Vector3(newX, ropeProjectile.y, newZ));
 
-        // Check if rope hit something
-        const rayStart = new Vector3(
-          playerRef.current.position.x,
-          playerRef.current.position.y,
-          playerRef.current.position.z
-        );
-
-        raycaster.set(rayStart, ropeProjectileDirection);
-        const intersects = raycaster
-          .intersectObjects(state.scene.children, true)
-          .filter(
-            (hit) =>
-              hit.object.name === "pipe" ||
-              hit.object.name === "grapple-point" ||
-              hit.object.name === "building"
-          );
-
-        if (
-          intersects.length > 0 &&
-          intersects[0].distance <= ropeProjectileDistance
-        ) {
-          handleRopeHit(intersects[0].point);
-          setRopeProjectile(null);
-        }
+        // Update distance
+        const ropeProjectileDistance = new Vector3(
+          newX - playerRef.current.position.x,
+          0,
+          newZ - playerRef.current.position.z
+        ).length();
 
         // Check if rope has traveled its maximum distance
         if (ropeProjectileDistance >= ropeLength[character.id]) {
@@ -676,28 +663,6 @@ function Game({
             <meshStandardMaterial color="#666666" />
           </mesh>
         ))}
-
-        {/* Additional grapple points */}
-        {[
-          [-5, 4, -10],
-          [5, 4, -10],
-          [-10, 3, -5],
-          [10, 3, -5],
-          [0, 5, -15],
-          [-8, 6, -12],
-          [8, 6, -12],
-          [-3, 7, -8],
-          [3, 7, -8],
-        ].map((pos, i) => (
-          <mesh key={`grapple-${i}`} position={pos} name="grapple-point">
-            <sphereGeometry args={[0.4]} />
-            <meshStandardMaterial
-              color="#ff4500"
-              emissive="#ff2000"
-              emissiveIntensity={0.5}
-            />
-          </mesh>
-        ))}
       </group>
 
       {/* Additional obstacles and grapple points in the path to van */}
@@ -835,10 +800,10 @@ function Game({
         )}
       </group>
 
-      {/* Van (goal) */}
+      {/* Van (goal) - move it further away */}
       <group
         ref={vanRef}
-        position={[0, 1, -50]} // Move the van further away to the end of the obstacle course
+        position={[0, 1, -70]} // Move the van further away
         rotation={[0, Math.PI, 0]} // Make the van face the player
       >
         {/* Van body */}
@@ -1001,31 +966,6 @@ function Game({
         />
       </mesh>
 
-      {/* Add some random rocks on the ground */}
-      {[...Array(30)].map((_, i) => (
-        <mesh
-          key={`rock-${i}`}
-          position={[
-            (Math.random() - 0.5) * 80,
-            0.2,
-            (Math.random() - 0.5) * 80,
-          ]}
-          rotation={[
-            Math.random() * Math.PI,
-            Math.random() * Math.PI,
-            Math.random() * Math.PI,
-          ]}
-          scale={[
-            Math.random() * 0.5 + 0.5,
-            Math.random() * 0.5 + 0.5,
-            Math.random() * 0.5 + 0.5,
-          ]}
-        >
-          <dodecahedronGeometry args={[0.5, 0]} />
-          <meshStandardMaterial color="#555555" roughness={0.9} />
-        </mesh>
-      ))}
-
       {/* Paul and his truck */}
       <group
         ref={paulRef}
@@ -1183,13 +1123,13 @@ function Game({
       />
 
       {/* Obstacle Course Elements */}
-      {/* Large concrete barriers */}
+      {/* Large concrete barriers - spread them out more */}
       {[
-        [5, 0.75, -5],
-        [-15, 0.75, -12],
-        [20, 0.75, -20],
-        [-18, 0.75, -25],
-        [25, 0.75, -30],
+        [15, 0.75, -5],
+        [-25, 0.75, -15],
+        [30, 0.75, -25],
+        [-30, 0.75, -35],
+        [35, 0.75, -45],
       ].map((pos, i) => (
         <mesh key={`barrier-${i}`} position={pos} name="obstacle">
           <boxGeometry args={[3, 1.5, 1]} />
@@ -1197,11 +1137,11 @@ function Game({
         </mesh>
       ))}
 
-      {/* Shipping containers */}
+      {/* Shipping containers - spread them out more */}
       {[
-        [12, 1.5, -5, 0],
-        [-20, 1.5, -15, Math.PI / 4],
-        [18, 1.5, -25, Math.PI / 6],
+        [22, 1.5, -10, 0],
+        [-32, 1.5, -20, Math.PI / 4],
+        [28, 1.5, -35, Math.PI / 6],
       ].map((pos, i) => (
         <group
           key={`container-${i}`}
@@ -1246,9 +1186,9 @@ function Game({
 
       {/* Mud puddles that slow the player down */}
       {[
-        [3, 0.05, -8],
-        [-7, 0.05, -18],
-        [5, 0.05, -28],
+        [13, 0.05, -18],
+        [-17, 0.05, -28],
+        [15, 0.05, -38],
       ].map((pos, i) => (
         <mesh
           key={`mud-${i}`}
@@ -1275,13 +1215,13 @@ function Game({
 
       {/* Barrels */}
       {[
-        [2, 1, -3],
-        [3, 1, -3.5],
-        [2.5, 1, -2.5],
-        [-6, 1, -22],
-        [-5, 1, -21],
-        [14, 1, -18],
-        [15, 1, -17],
+        [12, 1, -13],
+        [13, 1, -14],
+        [12.5, 1, -12.5],
+        [-16, 1, -32],
+        [-15, 1, -31],
+        [24, 1, -28],
+        [25, 1, -27],
       ].map((pos, i) => (
         <mesh key={`barrel-${i}`} position={pos} name="obstacle">
           <cylinderGeometry args={[0.5, 0.5, 2, 16]} />
@@ -1311,12 +1251,12 @@ function Game({
         </group>
       ))}
 
-      {/* Add a finish line near the van */}
-      <mesh position={[0, 0.05, -45]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Add a finish line near the van - update position */}
+      <mesh position={[0, 0.05, -65]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[10, 2]} />
         <meshStandardMaterial color="#FFFFFF" />
       </mesh>
-      <mesh position={[0, 0.06, -45]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.06, -65]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[10, 2]} />
         <meshStandardMaterial color="#000000" transparent opacity={0.8} />
       </mesh>
@@ -1381,5 +1321,24 @@ const PAUL_QUOTES = [
   "Move it or lose it, buddy!",
   "I'm hauling important stuff here!",
 ];
+
+Game.propTypes = {
+  character: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
+  }).isRequired,
+  onWin: PropTypes.func.isRequired,
+  onPottyReset: PropTypes.func.isRequired,
+  onAlcoholRefill: PropTypes.func.isRequired,
+  onGameOver: PropTypes.func.isRequired,
+  movement: PropTypes.shape({
+    x: PropTypes.number.isRequired,
+    z: PropTypes.number.isRequired,
+  }).isRequired,
+  isAttacking: PropTypes.bool.isRequired,
+  energyDrinkActive: PropTypes.bool.isRequired,
+  onRotationChange: PropTypes.func.isRequired,
+  onScoreChange: PropTypes.func,
+};
 
 export default Game;

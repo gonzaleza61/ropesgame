@@ -3,7 +3,19 @@
     "react/no-unknown-property": [
       "error",
       {
-        "ignore": ["args", "position", "intensity"]
+        "ignore": [
+          "args",
+          "position",
+          "intensity",
+          "rotation",
+          "emissive",
+          "emissiveIntensity",
+          "metalness",
+          "roughness",
+          "transparent",
+          "opacity",
+          "wireframe"
+        ]
       }
     ]
   }
